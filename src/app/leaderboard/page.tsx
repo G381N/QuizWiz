@@ -10,12 +10,12 @@ import { Crown } from 'lucide-react';
 import Image from 'next/image';
 
 const mockLeaderboard = [
-  { rank: 1, name: 'Orenji Tomomi', score: 950, level: 8, avatar: '/avatars/1.png' },
-  { rank: 2, name: 'Toru', score: 756, level: 5, avatar: '/avatars/2.png' },
-  { rank: 3, name: 'Natsumi', score: 650, level: 3, avatar: '/avatars/3.png' },
-  { rank: 4, name: 'Nezuko', score: 468, level: 5, avatar: '/avatars/4.png' },
-  { rank: 5, name: 'Tomioka', score: 273, level: 9, avatar: '/avatars/5.png' },
-  { rank: 6, name: 'Miu', score: 250, level: 2, avatar: '/avatars/6.png' },
+  { rank: 1, name: 'Orenji Tomomi', score: 950, level: 8, avatar: '/avatars/1.svg' },
+  { rank: 2, name: 'Toru', score: 756, level: 5, avatar: '/avatars/2.svg' },
+  { rank: 3, name: 'Natsumi', score: 650, level: 3, avatar: '/avatars/3.svg' },
+  { rank: 4, name: 'Nezuko', score: 468, level: 5, avatar: '/avatars/4.svg' },
+  { rank: 5, name: 'Tomioka', score: 273, level: 9, avatar: '/avatars/5.svg' },
+  { rank: 6, name: 'Miu', score: 250, level: 2, avatar: '/avatars/6.svg' },
 ];
 
 const getRankColor = (rank: number) => {

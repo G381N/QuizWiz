@@ -10,7 +10,7 @@ export default function Header() {
     <header className="bg-transparent sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex h-20 items-center justify-end">
-           <Image src="/avatars/1.png" alt="User Avatar" width={40} height={40} className="rounded-full" />
+           <Image src="/avatars/1.svg" alt="User Avatar" width={40} height={40} className="rounded-full" />
         </div>
       </div>
     </header>

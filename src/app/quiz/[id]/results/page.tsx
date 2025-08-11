@@ -31,7 +31,7 @@ export default function ResultsPage() {
             <div className="bg-purple-100 rounded-2xl p-6 space-y-4">
                 <div className="flex justify-between items-center text-lg">
                     <div className="flex items-center gap-2">
-                        <Image src="/avatars/1.png" alt="Orenji" width={40} height={40} className="rounded-full" />
+                        <Image src="/avatars/1.svg" alt="Orenji" width={40} height={40} className="rounded-full" />
                         <span>Score</span>
                     </div>
                     <span className="font-bold">{finalScore}px</span>
