@@ -2,13 +2,22 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { CheckCircle, XCircle, Clock, Loader2 } from 'lucide-react';
+import { Check, X, Clock, Loader2, ArrowLeft } from 'lucide-react';
 
 import { type Quiz, type Question } from '@/types';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 const TIME_PER_QUESTION = 15; // seconds
 const POINTS_PER_SECOND = 10;
@@ -24,6 +33,7 @@ export default function QuizPage() {
   const [score, setScore] = React.useState(0);
   const [timeLeft, setTimeLeft] = React.useState(TIME_PER_QUESTION);
   const [isAnswered, setIsAnswered] = React.useState(false);
+  const [isExitDialogVisible, setIsExitDialogVisible] = React.useState(false);
 
   const timerRef = React.useRef<NodeJS.Timeout>();
 
@@ -51,7 +61,7 @@ export default function QuizPage() {
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
         if (prev <= 1) {
-          clearInterval(timerRef.current);
+          clearInterval(timerRef.current!);
           handleAnswer(null); // Timeout
           return 0;
         }
@@ -59,19 +69,20 @@ export default function QuizPage() {
       });
     }, 1000);
 
-    return () => clearInterval(timerRef.current);
+    return () => clearInterval(timerRef.current!);
   }, [currentQuestionIndex, isAnswered]);
 
   const handleAnswer = (answer: string | null) => {
     if (isAnswered) return;
 
-    clearInterval(timerRef.current);
+    clearInterval(timerRef.current!);
     setIsAnswered(true);
     setSelectedAnswer(answer);
 
     const currentQuestion = quiz?.questions[currentQuestionIndex];
+    let points = 0;
     if (answer && currentQuestion && answer === currentQuestion.answer) {
-      const points = timeLeft * POINTS_PER_SECOND;
+      points = timeLeft * POINTS_PER_SECOND;
       setScore((prev) => prev + points);
     }
     
@@ -82,7 +93,7 @@ export default function QuizPage() {
             setSelectedAnswer(null);
             setTimeLeft(TIME_PER_QUESTION);
         } else {
-            router.push(`/quiz/${quizId}/results?score=${score + (timeLeft * POINTS_PER_SECOND * (answer === currentQuestion?.answer ? 1: 0))}`);
+            router.push(`/quiz/${quizId}/results?score=${score + points}`);
         }
     }, 2000);
   };
@@ -99,29 +110,37 @@ export default function QuizPage() {
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
   const getButtonClass = (option: string) => {
-    if (!isAnswered) return 'bg-card hover:bg-accent/20';
+    if (!isAnswered) return 'bg-white hover:bg-purple-100 border-purple-200 border-2 text-purple-800';
 
-    if (option === currentQuestion.answer) return 'bg-green-500/80 hover:bg-green-500 text-white';
-    if (option === selectedAnswer) return 'bg-red-500/80 hover:bg-red-500 text-white';
-    return 'bg-card opacity-60';
+    const isCorrect = option === currentQuestion.answer;
+    const isSelected = option === selectedAnswer;
+
+    if(isCorrect) return 'bg-green-500 hover:bg-green-500 text-white border-green-700 border-2 animate-in zoom-in-105';
+    if(isSelected) return 'bg-red-500 hover:bg-red-500 text-white border-red-700 border-2';
+    
+    return 'bg-white opacity-60';
   };
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <Card className="shadow-2xl border-primary/20">
-        <CardHeader>
-          <div className="flex justify-between items-center mb-4">
-            <CardTitle className="text-2xl font-headline">{quiz.topic}</CardTitle>
-            <div className="flex items-center gap-2 text-lg font-bold text-accent">
+    <div className="max-w-3xl mx-auto space-y-6">
+       <div className="flex items-center justify-between">
+            <Button variant="ghost" size="icon" onClick={() => setIsExitDialogVisible(true)}>
+                <ArrowLeft className="w-6 h-6" />
+            </Button>
+            <div className="text-lg font-bold">
+                {currentQuestionIndex + 1} / {quiz.questions.length}
+            </div>
+            <div className="flex items-center gap-2 text-lg font-bold text-primary">
                 <Clock className="h-6 w-6" />
                 <span>{timeLeft}s</span>
             </div>
-          </div>
-          <Progress value={progress} className="w-full" />
-        </CardHeader>
-        <CardContent>
+        </div>
+        <Progress value={progress} className="w-full h-3" />
+        
+        <Card className="shadow-2xl border-none rounded-3xl bg-transparent">
+        <CardContent className="pt-6">
           <div className="space-y-8">
-            <h2 className="text-2xl md:text-3xl text-center font-semibold">
+            <h2 className="text-2xl md:text-4xl text-center font-bold">
               {currentQuestion.question}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -130,12 +149,12 @@ export default function QuizPage() {
                   key={option}
                   onClick={() => handleAnswer(option)}
                   disabled={isAnswered}
-                  className={cn("h-auto py-4 text-lg whitespace-normal justify-start transition-all duration-300", getButtonClass(option))}
+                  className={cn("h-auto py-6 text-lg rounded-2xl whitespace-normal justify-start transition-all duration-300 font-semibold", getButtonClass(option))}
                 >
                   {isAnswered && (
                     <>
-                      {option === currentQuestion.answer && <CheckCircle className="mr-3 h-6 w-6" />}
-                      {option !== currentQuestion.answer && <XCircle className="mr-3 h-6 w-6" />}
+                      {option === currentQuestion.answer && <Check className="mr-3 h-6 w-6" />}
+                      {option !== currentQuestion.answer && option === selectedAnswer && <X className="mr-3 h-6 w-6" />}
                     </>
                   )}
                   {option}
@@ -145,6 +164,20 @@ export default function QuizPage() {
           </div>
         </CardContent>
       </Card>
+      <AlertDialog open={isExitDialogVisible} onOpenChange={setIsExitDialogVisible}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure you want to quit?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your progress will be lost and you will not receive any points for this quiz.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+             <Button variant="outline" onClick={() => setIsExitDialogVisible(false)}>Cancel</Button>
+             <Button variant="destructive" onClick={() => router.push('/')}>Quit Quiz</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

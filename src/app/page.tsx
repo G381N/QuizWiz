@@ -2,13 +2,15 @@
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { BrainCircuit, BookOpen } from 'lucide-react';
+import { BookOpen, Rocket } from 'lucide-react';
+import Image from 'next/image';
 
 import { QuizForm } from '@/components/QuizForm';
 import { QuizFeed } from '@/components/QuizFeed';
 import { type Quiz } from '@/types';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
 import { useToast } from '@/hooks/use-toast';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
@@ -21,7 +23,6 @@ export default function Home() {
       if (storedQuizzes) {
         setQuizzes(JSON.parse(storedQuizzes));
       } else {
-        // Add some mock data if no quizzes are stored
         const mockQuizzes: Quiz[] = [
           {
             id: '1',
@@ -73,32 +74,37 @@ export default function Home() {
         title: 'Error',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
       });
-      return false; // Indicate failure
+      return false; 
     }
-    return true; // Indicate success
+    return true; 
   };
 
   return (
     <div className="space-y-12">
-      <section className="text-center bg-card p-8 rounded-xl shadow-lg border border-primary/20">
-        <div className="flex justify-center items-center gap-4 mb-4">
-          <BrainCircuit className="h-16 w-16 text-primary" />
-          <div>
-            <h1 className="text-5xl font-bold font-headline text-primary-foreground">Welcome to QuizWiz Kids!</h1>
-            <p className="text-muted-foreground text-lg mt-2">Create a fun quiz on any topic and challenge your friends!</p>
-          </div>
-        </div>
-        <div className="mt-8 max-w-2xl mx-auto">
-          <QuizForm onCreateQuiz={handleCreateQuiz} />
+      <section className="text-left">
+          <p className="text-muted-foreground text-lg">Hello, Orenji</p>
+          <h1 className="text-4xl font-bold">Here are the best Quizzes for you today!</h1>
+      </section>
+
+      <section className="bg-white p-6 rounded-3xl shadow-lg border border-purple-100 flex items-center gap-6">
+        <Image src="/rocket.png" alt="Rocket" width={120} height={120} data-ai-hint="rocket space" />
+        <div className="flex-grow">
+          <h2 className="text-2xl font-bold">Quiz about space</h2>
+          <p className="text-muted-foreground mb-4">A limited extent in one, two, or three dimensions: distance.</p>
+          <Button size="lg" className="w-full md:w-auto" onClick={() => handleCreateQuiz('Space', 'beginner')}>Play now</Button>
         </div>
       </section>
 
       <section>
         <div className="flex items-center gap-3 mb-6">
           <BookOpen className="h-8 w-8 text-primary" />
-          <h2 className="text-3xl font-bold font-headline">Recent Quizzes</h2>
+          <h2 className="text-3xl font-bold">Recent Quizzes</h2>
         </div>
         <QuizFeed quizzes={quizzes} />
+      </section>
+
+      <section className="my-12">
+         <QuizForm onCreateQuiz={handleCreateQuiz} />
       </section>
     </div>
   );

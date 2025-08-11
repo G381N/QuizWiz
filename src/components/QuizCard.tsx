@@ -18,38 +18,26 @@ interface QuizCardProps {
   quiz: Quiz;
 }
 
-const difficultyIcons: { [key: string]: React.ReactNode } = {
-  'dumb-dumb': <ToyBrick className="h-4 w-4 mr-1" />,
-  'novice': <Star className="h-4 w-4 mr-1" />,
-  'beginner': <BarChart3 className="h-4 w-4 mr-1" />,
-  'intermediate': <Medal className="h-4 w-4 mr-1" />,
-  'advanced': <Rocket className="h-4 w-4 mr-1" />,
-  'expert': <Brain className="h-4 w-4 mr-1" />,
-};
-
 export function QuizCard({ quiz }: QuizCardProps) {
-  const icon = difficultyIcons[quiz.difficulty] || <BarChart3 className="h-4 w-4 mr-1" />;
-  
   return (
-    <Card className="flex flex-col h-full hover:shadow-xl transition-shadow duration-300">
+    <Card className="flex flex-col h-full hover:shadow-xl transition-shadow duration-300 rounded-3xl bg-white/80 backdrop-blur-sm border-purple-100">
       <CardHeader>
-        <CardTitle className="font-headline text-2xl">{quiz.topic}</CardTitle>
-        <div className="flex items-center pt-2">
-          <Badge variant="secondary" className="capitalize flex items-center">
-            {icon}
-            {quiz.difficulty}
-          </Badge>
-        </div>
+        <CardTitle className="font-bold text-xl">{quiz.topic}</CardTitle>
       </CardHeader>
       <CardContent className="flex-grow">
         <p className="text-muted-foreground">
           A {quiz.questions.length}-question quiz to test your knowledge.
         </p>
+         <div className="flex items-center pt-2">
+          <Badge variant="secondary" className="capitalize flex items-center bg-purple-100 text-purple-800">
+            {quiz.difficulty}
+          </Badge>
+        </div>
       </CardContent>
       <CardFooter>
-        <Button asChild className="w-full bg-primary hover:bg-primary/90">
+        <Button asChild className="w-full" variant="ghost">
           <Link href={`/quiz/${quiz.id}`}>
-            Start Quiz <ArrowRight className="ml-2 h-4 w-4" />
+            Play now <ArrowRight className="ml-2 h-4 w-4" />
           </Link>
         </Button>
       </CardFooter>

@@ -2,6 +2,15 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/Header';
+import { BottomNav } from '@/components/BottomNav';
+import { Poppins } from 'next/font/google';
+
+const poppins = Poppins({
+  subsets: ['latin'],
+  weight: ['400', '500', '600', '700', '800'],
+  variable: '--font-body',
+});
+
 
 export const metadata: Metadata = {
   title: 'QuizWiz Kids',
@@ -14,17 +23,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Teko:wght@300..700&family=Fira+Sans:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap" rel="stylesheet" />
-      </head>
-      <body className="font-body antialiased min-h-screen flex flex-col">
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${poppins.variable} font-body antialiased min-h-screen flex flex-col`}>
         <Header />
-        <main className="flex-grow container mx-auto px-4 py-8">
+        <main className="flex-grow container mx-auto px-4 py-8 mb-20 md:mb-0">
           {children}
         </main>
+        <BottomNav />
         <Toaster />
       </body>
     </html>

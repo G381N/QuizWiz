@@ -1,4 +1,5 @@
 import type {Config} from 'tailwindcss';
+import {fontFamily} from 'tailwindcss/defaultTheme';
 
 export default {
   darkMode: ['class'],
@@ -8,11 +9,16 @@ export default {
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
   theme: {
+    container: {
+      center: true,
+      padding: '2rem',
+      screens: {
+        '2xl': '1400px',
+      },
+    },
     extend: {
       fontFamily: {
-        body: ['Fira Sans', 'sans-serif'],
-        headline: ['Teko', 'sans-serif'],
-        code: ['monospace'],
+        body: ['var(--font-body)', ...fontFamily.sans],
       },
       colors: {
         background: 'hsl(var(--background))',

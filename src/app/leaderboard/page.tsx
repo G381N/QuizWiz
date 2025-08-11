@@ -1,56 +1,100 @@
 import {
   Table,
   TableBody,
-  TableCaption,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Trophy } from 'lucide-react';
+import { Crown } from 'lucide-react';
+import Image from 'next/image';
 
 const mockLeaderboard = [
-  { rank: 1, name: 'Smarty Pants', score: 12540 },
-  { rank: 2, name: 'Quiz Master', score: 11200 },
-  { rank: 3, name: 'Brainiac', score: 9800 },
-  { rank: 4, name: 'Prodigy', score: 8500 },
-  { rank: 5, name: 'Genius Jr.', score: 7650 },
-  { rank: 6, name: 'Clever Clogs', score: 6800 },
-  { rank: 7, name: 'The Thinker', score: 5400 },
-  { rank: 8, name: 'Egghead', score: 4950 },
-  { rank: 9, name: 'Whiz Kid', score: 3200 },
-  { rank: 10, name: 'Bookworm', score: 2100 },
+  { rank: 1, name: 'Orenji Tomomi', score: 950, level: 8, avatar: '/avatars/1.png' },
+  { rank: 2, name: 'Toru', score: 756, level: 5, avatar: '/avatars/2.png' },
+  { rank: 3, name: 'Natsumi', score: 650, level: 3, avatar: '/avatars/3.png' },
+  { rank: 4, name: 'Nezuko', score: 468, level: 5, avatar: '/avatars/4.png' },
+  { rank: 5, name: 'Tomioka', score: 273, level: 9, avatar: '/avatars/5.png' },
+  { rank: 6, name: 'Miu', score: 250, level: 2, avatar: '/avatars/6.png' },
 ];
+
+const getRankColor = (rank: number) => {
+  if (rank === 1) return 'bg-purple-200';
+  if (rank === 2) return 'bg-pink-200';
+  if (rank === 3) return 'bg-yellow-200';
+  return 'bg-gray-100';
+}
 
 export default function LeaderboardPage() {
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="flex items-center gap-4 mb-8">
-        <Trophy className="h-10 w-10 text-primary" />
-        <h1 className="text-4xl font-bold font-headline">Leaderboard</h1>
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-4xl font-bold">Leaderboard</h1>
       </div>
-      <div className="bg-card rounded-lg border shadow-lg">
+      
+      {/* Top 3 */}
+      <div className="flex justify-center items-end gap-4 mb-12">
+        {mockLeaderboard.slice(1, 2).map(player => (
+        <div key={player.rank} className="text-center">
+            <div className="relative">
+                <Image src={player.avatar} alt={player.name} width={100} height={100} className="rounded-full border-4 border-pink-300 mx-auto"/>
+                <div className="absolute -top-2 -right-2 bg-pink-400 text-white text-xl font-bold w-8 h-8 rounded-full flex items-center justify-center">2</div>
+            </div>
+            <p className="font-bold mt-2">{player.name}</p>
+            <p className="text-sm text-muted-foreground">{player.score}px</p>
+        </div>
+        ))}
+        {mockLeaderboard.slice(0, 1).map(player => (
+        <div key={player.rank} className="text-center">
+            <div className="relative">
+                <Crown className="absolute -top-8 left-1/2 -translate-x-1/2 text-yellow-400 w-10 h-10" />
+                <Image src={player.avatar} alt={player.name} width={120} height={120} className="rounded-full border-4 border-purple-400 mx-auto"/>
+                <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-xl font-bold w-10 h-10 rounded-full flex items-center justify-center">1</div>
+            </div>
+            <p className="font-bold mt-2 text-lg">{player.name}</p>
+            <p className="text-sm text-muted-foreground">{player.score}px</p>
+        </div>
+        ))}
+        {mockLeaderboard.slice(2, 3).map(player => (
+        <div key={player.rank} className="text-center">
+            <div className="relative">
+                <Image src={player.avatar} alt={player.name} width={100} height={100} className="rounded-full border-4 border-yellow-300 mx-auto"/>
+                <div className="absolute -top-2 -right-2 bg-yellow-400 text-white text-xl font-bold w-8 h-8 rounded-full flex items-center justify-center">3</div>
+            </div>
+            <p className="font-bold mt-2">{player.name}</p>
+            <p className="text-sm text-muted-foreground">{player.score}px</p>
+        </div>
+        ))}
+      </div>
+
+      <div className="bg-card rounded-3xl border shadow-lg p-2">
         <Table>
-          <TableCaption>Top 10 players in QuizWiz Kids.</TableCaption>
-          <TableHeader>
+          <TableHeader className="hidden">
             <TableRow>
-              <TableHead className="w-[100px] text-center">Rank</TableHead>
+              <TableHead>Rank</TableHead>
               <TableHead>Player</TableHead>
-              <TableHead className="text-right">Score</TableHead>
+              <TableHead>Score</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {mockLeaderboard.map((player) => (
-              <TableRow key={player.rank} className="font-medium">
-                <TableCell className="text-center text-lg">
-                  {player.rank === 1 && '🥇'}
-                  {player.rank === 2 && '🥈'}
-                  {player.rank === 3 && '🥉'}
-                  {player.rank > 3 && player.rank}
+              <TableRow key={player.rank} className="font-medium border-b-0 hover:bg-purple-50 rounded-2xl">
+                <TableCell className="w-16 text-center">
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-lg font-bold ${getRankColor(player.rank)}`}>
+                        {player.rank}
+                    </div>
                 </TableCell>
-                <TableCell className="text-lg">{player.name}</TableCell>
+                <TableCell>
+                  <div className="flex items-center gap-4">
+                    <Image src={player.avatar} alt={player.name} width={48} height={48} className="rounded-full"/>
+                    <div>
+                        <p className="text-lg font-semibold">{player.name}</p>
+                        <p className="text-sm text-muted-foreground">Level {player.level}</p>
+                    </div>
+                  </div>
+                </TableCell>
                 <TableCell className="text-right text-lg text-primary font-bold">
-                  {player.score.toLocaleString()}
+                  {player.score.toLocaleString()}px
                 </TableCell>
               </TableRow>
             ))}

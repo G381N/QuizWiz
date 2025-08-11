@@ -4,66 +4,53 @@ import { useSearchParams, useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Home } from 'lucide-react';
+import { Star, Home, RotateCw } from 'lucide-react';
 import * as React from 'react';
-import { type Quiz } from '@/types';
+import Image from 'next/image';
 
 export default function ResultsPage() {
   const searchParams = useSearchParams();
-  const params = useParams();
   const router = useRouter();
   const score = searchParams.get('score');
-  const quizId = params.id as string;
-
-  const [quiz, setQuiz] = React.useState<Quiz | null>(null);
-
-  React.useEffect(() => {
-    try {
-        const storedQuizzes = localStorage.getItem('quizzes');
-        if (storedQuizzes) {
-            const quizzes: Quiz[] = JSON.parse(storedQuizzes);
-            setQuiz(quizzes.find(q => q.id === quizId) || null);
-        }
-    } catch (error) {
-        console.error("Failed to load quiz for results", error);
-    }
-  }, [quizId]);
 
   const finalScore = score ? parseInt(score, 10) : 0;
-
-  const getResultMessage = () => {
-    if (finalScore > 1000) return "Fantastic! You're a true Quiz Wiz!";
-    if (finalScore > 500) return 'Great job! You really know your stuff!';
-    if (finalScore > 0) return 'Good try! Keep practicing!';
-    return "That was tricky! Better luck next time!";
-  };
+  const bonus = Math.floor(finalScore * 0.5);
 
   return (
-    <div className="flex items-center justify-center min-h-[60vh]">
-      <Card className="w-full max-w-lg text-center shadow-2xl animate-in fade-in zoom-in-95">
-        <CardHeader>
-          <div className="mx-auto bg-primary p-4 rounded-full w-fit">
-            <Trophy className="h-12 w-12 text-primary-foreground" />
+    <div className="flex items-center justify-center min-h-[70vh]">
+      <Card className="w-full max-w-md text-center shadow-2xl animate-in fade-in zoom-in-95 rounded-3xl p-6 bg-white/80 backdrop-blur-sm">
+        <CardHeader className="p-0">
+          <div className="relative w-48 h-24 mx-auto">
+             <Star className="absolute top-0 left-0 text-yellow-400 w-12 h-12 rotate-[-15deg]" fill="currentColor" />
+             <Star className="absolute -top-4 left-1/2 -translate-x-1/2 text-yellow-400 w-16 h-16" fill="currentColor" />
+             <Star className="absolute top-0 right-0 text-yellow-400 w-12 h-12 rotate-[15deg]" fill="currentColor" />
           </div>
-          <CardTitle className="text-3xl font-headline mt-4">Quiz Complete!</CardTitle>
-          {quiz && <p className="text-muted-foreground text-lg">Results for: {quiz.topic}</p>}
+          <CardTitle className="text-2xl font-bold mt-4">Congrats Orenji you won the game!</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <p className="text-xl">{getResultMessage()}</p>
-          <p className="text-6xl font-bold text-primary">{finalScore}</p>
-          <p className="text-muted-foreground">points</p>
+        <CardContent className="space-y-6 my-8">
+            <div className="bg-purple-100 rounded-2xl p-6 space-y-4">
+                <div className="flex justify-between items-center text-lg">
+                    <div className="flex items-center gap-2">
+                        <Image src="/avatars/1.png" alt="Orenji" width={40} height={40} className="rounded-full" />
+                        <span>Score</span>
+                    </div>
+                    <span className="font-bold">{finalScore}px</span>
+                </div>
+                <div className="flex justify-between items-center text-lg">
+                    <div className="flex items-center gap-2">
+                        <Star className="text-yellow-500 w-10 h-10" fill="currentColor" />
+                        <span>Bonus</span>
+                    </div>
+                    <span className="font-bold">{bonus}px</span>
+                </div>
+            </div>
         </CardContent>
-        <CardFooter className="flex justify-center gap-4">
-          <Button asChild variant="outline">
-            <Link href={`/quiz/${quizId}`}>
-              Play Again
-            </Link>
+        <CardFooter className="flex flex-col gap-4">
+          <Button size="lg" className="w-full" onClick={() => router.push('/')}>
+            Next
           </Button>
-          <Button asChild className="bg-accent hover:bg-accent/90">
-            <Link href="/">
-              <Home className="mr-2 h-4 w-4" />
-              Back to Home
-            </Link>
+          <Button variant="link" onClick={() => router.push('/')}>
+            Back to homepage
           </Button>
         </CardFooter>
       </Card>

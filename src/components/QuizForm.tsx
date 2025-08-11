@@ -23,7 +23,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
@@ -64,11 +64,12 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
   };
 
   return (
-    <Card className="border-none shadow-none bg-transparent">
-      <CardHeader className="p-0 mb-4">
-        <CardTitle className="text-xl font-headline text-center">Create a New Quiz</CardTitle>
+    <Card className="rounded-3xl p-4 md:p-8 bg-white/80 backdrop-blur-sm border-purple-100">
+      <CardHeader className="text-center">
+        <CardTitle className="text-3xl font-bold">Create a Quiz</CardTitle>
+        <CardDescription>Keep upgrading the latest science and knowledge everyday</CardDescription>
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="p-0 pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
@@ -78,7 +79,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                 <FormItem>
                   <FormLabel>Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Dinosaurs, Roman Empire..." {...field} />
+                    <Input placeholder="e.g., Dinosaurs, Roman Empire..." {...field} className="rounded-xl h-12" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -92,7 +93,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                   <FormLabel>Difficulty</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="rounded-xl h-12">
                         <SelectValue placeholder="Select a difficulty level" />
                       </SelectTrigger>
                     </FormControl>
@@ -111,7 +112,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
             <Button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
+              className="w-full"
               size="lg"
             >
               {isLoading ? (
