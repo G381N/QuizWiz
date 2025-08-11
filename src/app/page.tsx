@@ -94,7 +94,18 @@ export default function Home() {
            <svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" className="absolute -right-12 -bottom-12">
             <path fill="#FFD700" d="M46.2,-48.9C57.4,-36.5,62.3,-20,62.8,-4.1C63.2,11.8,59.2,27.1,49.8,39.1C40.3,51.1,25.4,59.8,9.4,63.8C-6.6,67.8,-23.7,67.1,-37.9,59.8C-52.1,52.5,-63.4,38.6,-68.2,23.1C-73,7.6,-71.2,-9.4,-63.4,-23.3C-55.6,-37.2,-41.8,-47.9,-27.6,-53.4C-13.4,-58.9,-6.7,-59.2,3.3,-58.8C13.3,-58.5,26.6,-57.6,46.2,-48.9Z" transform="translate(100 100)" />
           </svg>
-          <Image src="/rocket.png" alt="Rocket" width={120} height={120} data-ai-hint="rocket space" className="relative z-10" />
+          <div data-ai-hint="rocket space" className="relative z-10 w-32 h-32">
+            <svg width="120" height="120" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2.5C12 2.5 14.5 6 14.5 9.5C14.5 13 12 16.5 12 16.5" stroke="#6D28D9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 16.5C12 16.5 9.5 13 9.5 9.5C9.5 6 12 2.5 12 2.5" stroke="#6D28D9" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14.5 9.5C15.5 9.5 16.5 9 16.5 8C16.5 7 15.5 6.5 14.5 6.5" stroke="#FB923C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9.5 9.5C8.5 9.5 7.5 9 7.5 8C7.5 7 8.5 6.5 9.5 6.5" stroke="#FB923C" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M12 16.5V21.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10 21.5H14" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M9.5 18.5L7.5 20.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M14.5 18.5L16.5 20.5" stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
         </div>
         <div className="flex-grow">
           <h2 className="text-2xl font-bold">Quiz about space</h2>
