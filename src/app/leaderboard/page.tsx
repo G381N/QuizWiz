@@ -8,33 +8,51 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Trophy } from 'lucide-react';
+import { Crown, Trophy, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
+import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = React.useState<OverallLeaderboardEntry[]>([]);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
-    // In a real app, this data would be fetched from a server.
-    // For this prototype, we'll generate it from localStorage.
-    const overallLeaderboard = localStorage.getItem('overall_leaderboard');
-    if (overallLeaderboard) {
-      setLeaderboard(JSON.parse(overallLeaderboard));
-    } else {
-        const mockLeaderboard: OverallLeaderboardEntry[] = [
-          { rank: 1, name: 'CygnusX1', quizzesSolved: 25, avatar: '/avatars/1.svg' },
-          { rank: 2, name: 'Vortex', quizzesSolved: 22, avatar: '/avatars/2.svg' },
-          { rank: 3, name: 'Nebula', quizzesSolved: 18, avatar: '/avatars/3.svg' },
-          { rank: 4, name: 'Pulsar', quizzesSolved: 15, avatar: '/avatars/4.svg' },
-          { rank: 5, name: 'Quasar', quizzesSolved: 12, avatar: '/avatars/5.svg' },
-          { rank: 6, name: 'Orbit', quizzesSolved: 9, avatar: '/avatars/6.svg' },
-        ];
-        setLeaderboard(mockLeaderboard);
-        localStorage.setItem('overall_leaderboard', JSON.stringify(mockLeaderboard));
-    }
+    const fetchLeaderboard = async () => {
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'users'), orderBy('quizzesSolved', 'desc'), limit(10));
+        const querySnapshot = await getDocs(q);
+        const leaderboardData: OverallLeaderboardEntry[] = [];
+        let rank = 1;
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          leaderboardData.push({
+            rank: rank++,
+            name: data.displayName,
+            quizzesSolved: data.quizzesSolved,
+            avatar: data.photoURL,
+          });
+        });
+        setLeaderboard(leaderboardData);
+      } catch (error) {
+        console.error("Failed to fetch overall leaderboard", error);
+      }
+      setLoading(false);
+    };
+
+    fetchLeaderboard();
   }, []);
+
+  if (loading) {
+    return (
+        <div className="flex justify-center items-center h-[60vh]">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    )
+  }
 
   return (
     <div className="max-w-4xl mx-auto animate-in fade-in-50 duration-500">
@@ -53,7 +71,7 @@ export default function LeaderboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leaderboard.map((player) => (
+            {leaderboard.length > 0 ? leaderboard.map((player) => (
               <TableRow key={player.rank} className="font-medium border-b-0 hover:bg-white/5">
                 <TableCell className="text-center">
                     <div className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-lg font-bold">
@@ -70,12 +88,16 @@ export default function LeaderboardPage() {
                   {player.quizzesSolved}
                 </TableCell>
               </TableRow>
-            ))}
+            )) : (
+              <TableRow>
+                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                  The leaderboard is empty. Be the first to solve a quiz!
+                </TableCell>
+              </TableRow>
+            )}
           </TableBody>
         </Table>
       </div>
     </div>
   );
 }
-
-    

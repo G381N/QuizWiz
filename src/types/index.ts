@@ -14,6 +14,7 @@ export type QuizLeaderboardEntry = {
 
 export type Quiz = {
   id: string;
+  userId: string;
   topic: string;
   difficulty: string;
   questions: Question[];
@@ -26,5 +27,3 @@ export type OverallLeaderboardEntry = {
     quizzesSolved: number;
     avatar: string;
 }
-
-    

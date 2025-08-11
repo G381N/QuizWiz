@@ -1,10 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { QuizCard } from '@/components/QuizCard';
 import { type Quiz } from '@/types';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
@@ -19,67 +18,63 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { QuizForm } from '@/components/QuizForm';
-
+import { useAuth } from '@/hooks/use-auth';
+import { collection, addDoc, getDocs, query, where } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
+  const [loading, setLoading] = React.useState(true);
   const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   React.useEffect(() => {
-    try {
-      const storedQuizzes = localStorage.getItem('quizzes');
-      if (storedQuizzes) {
-        setQuizzes(JSON.parse(storedQuizzes));
-      } else {
-        const mockQuizzes: Quiz[] = [
-          {
-            id: '1',
-            topic: 'The Cosmos',
-            difficulty: 'beginner',
-            questions: [
-              { question: 'Which planet is known as the Red Planet?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Mars' },
-              { question: 'What is the largest planet in our solar system?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Jupiter' }
-            ],
-            leaderboard: [
-                { rank: 1, name: 'CygnusX1', score: 9850, avatar: '/avatars/1.svg' },
-                { rank: 2, name: 'Vortex', score: 9756, avatar: '/avatars/2.svg' },
-                { rank: 3, name: 'Nebula', score: 8650, avatar: '/avatars/3.svg' },
-            ]
-          },
-          {
-            id: '2',
-            topic: 'Deep Oceans',
-            difficulty: 'intermediate',
-            questions: [
-              { question: 'Which is the largest ocean?', options: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], answer: 'Pacific' }
-            ],
-            leaderboard: []
-          }
-        ];
-        setQuizzes(mockQuizzes);
-        localStorage.setItem('quizzes', JSON.stringify(mockQuizzes));
+    const fetchQuizzes = async () => {
+      if (!user) return;
+      setLoading(true);
+      try {
+        const q = query(collection(db, 'quizzes'), where('userId', '==', user.uid));
+        const querySnapshot = await getDocs(q);
+        const userQuizzes: Quiz[] = [];
+        querySnapshot.forEach((doc) => {
+          userQuizzes.push({ id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) });
+        });
+        setQuizzes(userQuizzes);
+      } catch (error) {
+        console.error("Failed to fetch quizzes from Firestore", error);
+        toast({
+          variant: 'destructive',
+          title: 'Error',
+          description: 'Could not load your quizzes.',
+        });
       }
-    } catch (error) {
-      console.error("Failed to parse quizzes from localStorage", error);
-    }
-  }, []);
+      setLoading(false);
+    };
+
+    fetchQuizzes();
+  }, [user, toast]);
 
   const handleCreateQuiz = async (topic: string, difficulty: string) => {
+    if (!user) {
+      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a quiz.' });
+      return false;
+    }
     try {
       const result: GenerateQuizOutput = await generateQuiz({ topic, difficulty });
       if (result && result.quiz) {
-        const newQuiz: Quiz = {
-          id: new Date().getTime().toString(),
+        const newQuizData = {
+          userId: user.uid,
           topic,
           difficulty,
           questions: result.quiz,
           leaderboard: [],
         };
-        const updatedQuizzes = [newQuiz, ...quizzes];
-        setQuizzes(updatedQuizzes);
-        localStorage.setItem('quizzes', JSON.stringify(updatedQuizzes));
+        const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
+        const newQuiz = { id: docRef.id, ...newQuizData };
+
+        setQuizzes([newQuiz, ...quizzes]);
         setIsQuizFormOpen(false);
         router.push(`/quiz/${newQuiz.id}`);
       } else {
@@ -92,10 +87,18 @@ export default function DashboardPage() {
         title: 'Error',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
       });
-      return false; 
+      return false;
     }
-    return true; 
+    return true;
   };
+
+  if (loading) {
+      return (
+          <div className="flex justify-center items-center h-[60vh]">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          </div>
+      )
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">

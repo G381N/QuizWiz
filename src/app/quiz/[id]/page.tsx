@@ -3,9 +3,8 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft, ShieldQuestion, Trophy, Crown } from 'lucide-react';
-
-import { type Quiz, type Question, type QuizLeaderboardEntry } from '@/types';
+import { Check, X, Clock, Loader2, ArrowLeft, Trophy, Crown } from 'lucide-react';
+import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -20,6 +19,9 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import Image from 'next/image';
+import { useAuth } from '@/hooks/use-auth';
+import { db } from '@/lib/firebase';
+import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
 
 const TIME_PER_QUESTION = 15; // seconds
 const POINTS_PER_SECOND = 10;
@@ -28,6 +30,7 @@ export default function QuizPage() {
   const params = useParams();
   const router = useRouter();
   const quizId = params.id as string;
+  const { user } = useAuth();
 
   const [quiz, setQuiz] = React.useState<Quiz | null>(null);
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
@@ -38,25 +41,25 @@ export default function QuizPage() {
   const [isExitDialogVisible, setIsExitDialogVisible] = React.useState(false);
   const [view, setView] = React.useState<'quiz' | 'leaderboard'>('quiz');
 
-
   const timerRef = React.useRef<NodeJS.Timeout>();
 
   React.useEffect(() => {
-    try {
-      const storedQuizzes = localStorage.getItem('quizzes');
-      if (storedQuizzes) {
-        const quizzes: Quiz[] = JSON.parse(storedQuizzes);
-        const currentQuiz = quizzes.find((q) => q.id === quizId);
-        if (currentQuiz) {
-          setQuiz(currentQuiz);
+    const fetchQuiz = async () => {
+      if (!quizId) return;
+      try {
+        const docRef = doc(db, 'quizzes', quizId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setQuiz({ id: docSnap.id, ...docSnap.data() } as Quiz);
         } else {
-          router.push('/');
+          router.push('/dashboard');
         }
-      }
-    } catch (error) {
+      } catch (error) {
         console.error("Failed to load quiz", error);
-        router.push('/');
-    }
+        router.push('/dashboard');
+      }
+    };
+    fetchQuiz();
   }, [quizId, router]);
 
   React.useEffect(() => {
@@ -91,54 +94,66 @@ export default function QuizPage() {
     }
     
     setTimeout(() => {
-        if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
-            setCurrentQuestionIndex((prev) => prev + 1);
-            setIsAnswered(false);
-            setSelectedAnswer(null);
-            setTimeLeft(TIME_PER_QUESTION);
-        } else {
-            // End of quiz
-            const finalScore = score + points;
-            
-            // In a real app, the username would come from an auth context
-            const username = 'You'; 
-            const avatar = '/avatars/1.svg';
-
-            // Update quiz leaderboard
-            const storedQuizzes = localStorage.getItem('quizzes');
-            if (storedQuizzes) {
-                let quizzes: Quiz[] = JSON.parse(storedQuizzes);
-                const quizIndex = quizzes.findIndex(q => q.id === quizId);
-                if (quizIndex !== -1) {
-                    if (!quizzes[quizIndex].leaderboard) {
-                      quizzes[quizIndex].leaderboard = [];
-                    }
-                    const newEntry: QuizLeaderboardEntry = { rank: 0, name: username, score: finalScore, avatar };
-                    quizzes[quizIndex].leaderboard.push(newEntry);
-                    // Sort and re-rank
-                    quizzes[quizIndex].leaderboard.sort((a,b) => b.score - a.score).forEach((entry, i) => entry.rank = i + 1);
-                    localStorage.setItem('quizzes', JSON.stringify(quizzes));
-                }
-            }
-            
-            // Update overall leaderboard
-            const storedOverall = localStorage.getItem('overall_leaderboard');
-            if (storedOverall) {
-                // For simplicity, we just increment the first user's score
-                let overall: any[] = JSON.parse(storedOverall);
-                if(overall[0]) {
-                    overall[0].quizzesSolved += 1;
-                    overall.sort((a,b) => b.quizzesSolved - a.quizzesSolved).forEach((entry, i) => entry.rank = i + 1);
-                    localStorage.setItem('overall_leaderboard', JSON.stringify(overall));
-                }
-            }
-
-
-            localStorage.setItem(`quiz_score_${quizId}`, finalScore.toString());
-            router.push(`/quiz/${quizId}/results`);
+      if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
+        setCurrentQuestionIndex((prev) => prev + 1);
+        setIsAnswered(false);
+        setSelectedAnswer(null);
+        setTimeLeft(TIME_PER_QUESTION);
+      } else {
+        const finalScore = score + points;
+        
+        if (user) {
+          updateLeaderboards(finalScore);
         }
+        
+        localStorage.setItem(`quiz_score_${quizId}`, finalScore.toString());
+        router.push(`/quiz/${quizId}/results`);
+      }
     }, 2000);
   };
+  
+  const updateLeaderboards = async (finalScore: number) => {
+    if (!user) return;
+
+    try {
+      // Update quiz-specific leaderboard
+      const quizDocRef = doc(db, 'quizzes', quizId);
+      const newEntry: Omit<QuizLeaderboardEntry, 'rank'> = { 
+        name: user.displayName || 'Anonymous', 
+        score: finalScore, 
+        avatar: user.photoURL || '/avatars/1.svg' 
+      };
+
+      const quizDocSnap = await getDoc(quizDocRef);
+      if (quizDocSnap.exists()) {
+        const currentLeaderboard = quizDocSnap.data().leaderboard || [];
+        const updatedLeaderboard = [...currentLeaderboard, newEntry]
+          .sort((a,b) => b.score - a.score)
+          .map((entry, index) => ({ ...entry, rank: index + 1 }));
+        await updateDoc(quizDocRef, { leaderboard: updatedLeaderboard });
+      }
+
+
+      // Update user's overall stats
+      const userDocRef = doc(db, "users", user.uid);
+      await runTransaction(db, async (transaction) => {
+          const userDoc = await transaction.get(userDocRef);
+          if (!userDoc.exists()) {
+              transaction.set(userDocRef, { 
+                  displayName: user.displayName,
+                  photoURL: user.photoURL,
+                  quizzesSolved: 1 
+              });
+          } else {
+              const newQuizzesSolved = (userDoc.data().quizzesSolved || 0) + 1;
+              transaction.update(userDocRef, { quizzesSolved: newQuizzesSolved });
+          }
+      });
+    } catch (error) {
+        console.error("Error updating leaderboards:", error);
+    }
+  };
+
 
   if (!quiz) {
     return (
@@ -236,7 +251,7 @@ export default function QuizPage() {
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {quiz.leaderboard.length > 0 ? quiz.leaderboard.map((player) => (
+                    {quiz.leaderboard && quiz.leaderboard.length > 0 ? quiz.leaderboard.map((player) => (
                     <TableRow key={player.rank} className="font-medium border-b-0 hover:bg-white/5">
                         <TableCell className="text-center">
                             <div className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-lg font-bold">
@@ -275,7 +290,7 @@ export default function QuizPage() {
           </AlertDialogHeader>
           <AlertDialogFooter>
              <Button variant="outline" onClick={() => setIsExitDialogVisible(false)}>Cancel</Button>
-             <Button variant="destructive" onClick={() => router.push('/')}>Quit Quiz</Button>
+             <Button variant="destructive" onClick={() => router.push('/dashboard')}>Quit Quiz</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
