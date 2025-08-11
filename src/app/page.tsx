@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -82,7 +83,8 @@ export default function Home() {
   return (
     <div className="space-y-12">
       <section className="text-left">
-          <h1 className="text-4xl font-bold">Here are the best Quizzes for you today!</h1>
+          <p className="text-muted-foreground">Hello, Orenji Tomomi</p>
+          <h1 className="text-4xl font-bold">What will you learn today?</h1>
       </section>
 
       <section className="bg-white p-6 rounded-3xl shadow-lg border border-purple-100 flex items-center gap-6">
