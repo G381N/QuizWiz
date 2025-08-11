@@ -4,12 +4,12 @@ import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+  "projectId": "quizwiz-kids",
+  "appId": "1:1071210484937:web:a30927b3611ba9adeee918",
+  "storageBucket": "quizwiz-kids.firebasestorage.app",
+  "apiKey": "AIzaSyCra2XFg49Oa7yRRYs1kTbrYrYa9Kabn2I",
+  "authDomain": "quizwiz-kids.firebaseapp.com",
+  "messagingSenderId": "1071210484937"
 };
 
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
