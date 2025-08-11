@@ -110,6 +110,9 @@ export default function QuizPage() {
                 let quizzes: Quiz[] = JSON.parse(storedQuizzes);
                 const quizIndex = quizzes.findIndex(q => q.id === quizId);
                 if (quizIndex !== -1) {
+                    if (!quizzes[quizIndex].leaderboard) {
+                      quizzes[quizIndex].leaderboard = [];
+                    }
                     const newEntry: QuizLeaderboardEntry = { rank: 0, name: username, score: finalScore, avatar };
                     quizzes[quizIndex].leaderboard.push(newEntry);
                     // Sort and re-rank
@@ -279,5 +282,3 @@ export default function QuizPage() {
     </div>
   );
 }
-
-    
