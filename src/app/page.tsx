@@ -82,7 +82,6 @@ export default function Home() {
   return (
     <div className="space-y-12">
       <section className="text-left">
-          <p className="text-muted-foreground text-lg">Hello, Orenji</p>
           <h1 className="text-4xl font-bold">Here are the best Quizzes for you today!</h1>
       </section>
 
