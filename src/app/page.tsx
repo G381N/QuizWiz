@@ -1,174 +1,113 @@
 
 'use client';
 
-import * as React from 'react';
-import { useRouter } from 'next/navigation';
-import { Plus } from 'lucide-react';
-import { QuizCard } from '@/components/QuizCard';
-import { type Quiz } from '@/types';
-import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
-import { useToast } from '@/hooks/use-toast';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { QuizForm } from '@/components/QuizForm';
+import { ArrowRight } from 'lucide-react';
 
-
-export default function Home() {
-  const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
-  const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
-  const router = useRouter();
-  const { toast } = useToast();
-
-  React.useEffect(() => {
-    try {
-      const storedQuizzes = localStorage.getItem('quizzes');
-      if (storedQuizzes) {
-        setQuizzes(JSON.parse(storedQuizzes));
-      } else {
-        const mockQuizzes: Quiz[] = [
-          {
-            id: '1',
-            topic: 'The Cosmos',
-            difficulty: 'beginner',
-            questions: [
-              { question: 'Which planet is known as the Red Planet?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Mars' },
-              { question: 'What is the largest planet in our solar system?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Jupiter' }
-            ],
-            leaderboard: [
-                { rank: 1, name: 'CygnusX1', score: 9850, avatar: '/avatars/1.svg' },
-                { rank: 2, name: 'Vortex', score: 9756, avatar: '/avatars/2.svg' },
-                { rank: 3, name: 'Nebula', score: 8650, avatar: '/avatars/3.svg' },
-            ]
-          },
-          {
-            id: '2',
-            topic: 'Deep Oceans',
-            difficulty: 'intermediate',
-            questions: [
-              { question: 'Which is the largest ocean?', options: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], answer: 'Pacific' }
-            ],
-            leaderboard: []
-          }
-        ];
-        setQuizzes(mockQuizzes);
-        localStorage.setItem('quizzes', JSON.stringify(mockQuizzes));
-      }
-    } catch (error) {
-      console.error("Failed to parse quizzes from localStorage", error);
-    }
-  }, []);
-
-  const handleCreateQuiz = async (topic: string, difficulty: string) => {
-    try {
-      const result: GenerateQuizOutput = await generateQuiz({ topic, difficulty });
-      if (result && result.quiz) {
-        const newQuiz: Quiz = {
-          id: new Date().getTime().toString(),
-          topic,
-          difficulty,
-          questions: result.quiz,
-          leaderboard: [],
-        };
-        const updatedQuizzes = [newQuiz, ...quizzes];
-        setQuizzes(updatedQuizzes);
-        localStorage.setItem('quizzes', JSON.stringify(updatedQuizzes));
-        setIsQuizFormOpen(false);
-        router.push(`/quiz/${newQuiz.id}`);
-      } else {
-        throw new Error('Failed to generate quiz, please try again.');
-      }
-    } catch (error) {
-      console.error('Quiz generation failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unknown error occurred.',
-      });
-      return false; 
-    }
-    return true; 
-  };
-
+export default function LandingPage() {
   return (
-    <div className="space-y-8 animate-in fade-in-50 duration-500">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Your Quizzes</h1>
-         <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                New Quiz
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="bg-background border-border">
-              <DialogHeader>
-                <DialogTitle>Create a New Quiz</DialogTitle>
-                <DialogDescription>
-                  What would you like to learn about today?
-                </DialogDescription>
-              </DialogHeader>
-              <QuizForm onCreateQuiz={handleCreateQuiz} />
-            </DialogContent>
-          </Dialog>
-      </div>
-
-      {quizzes.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {quizzes.map((quiz) => (
-            <QuizCard key={quiz.id} quiz={quiz} />
-          ))}
-        </div>
-      ) : (
-        <div className="text-center py-24 bg-secondary/30 rounded-2xl border-2 border-dashed border-border">
-          <svg
-            className="mx-auto h-12 w-12 text-muted-foreground"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-            aria-hidden="true"
-          >
-            <path
-              vectorEffect="non-scaling-stroke"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z"
-            />
-          </svg>
-          <h3 className="mt-4 text-lg font-medium">No quizzes yet</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Get started by creating a new quiz.
-          </p>
-          <div className="mt-6">
-             <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New Quiz
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="bg-background border-border">
-                  <DialogHeader>
-                    <DialogTitle>Create a New Quiz</DialogTitle>
-                    <DialogDescription>
-                      What would you like to learn about today?
-                    </DialogDescription>
-                  </DialogHeader>
-                  <QuizForm onCreateQuiz={handleCreateQuiz} />
-                </DialogContent>
-              </Dialog>
+    <div className="flex flex-col min-h-screen">
+      <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
+        <div className="container mx-auto px-4">
+          <div className="flex h-20 items-center justify-between">
+            <Link href="/" className="flex items-center gap-2">
+              <svg
+                className="w-8 h-8 text-primary"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+              </svg>
+              <span className="text-xl font-bold tracking-tight">QuizWiz</span>
+            </Link>
+            <Button asChild>
+              <Link href="/login">Get Started</Link>
+            </Button>
           </div>
         </div>
-      )}
+      </header>
+      <main className="flex-grow">
+        <section className="container mx-auto px-4 py-16 md:py-24 text-center animate-in fade-in-50 duration-500">
+          <div className="max-w-3xl mx-auto">
+             <Badge variant="outline" className="text-sm font-semibold border-primary/50 text-primary bg-primary/10">
+                Fun & Engaging Quizzes
+            </Badge>
+            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tighter mt-4">
+              Learn Anything, <br/> The Fun Way.
+            </h1>
+            <p className="mt-6 text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Create and play quizzes on any topic imaginable. Challenge your friends, climb the leaderboards, and become a knowledge master with the power of AI.
+            </p>
+            <div className="mt-8">
+              <Button size="lg" asChild>
+                <Link href="/login">
+                  Start Learning Now <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+            </div>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 py-16">
+            <div className="relative rounded-2xl border border-border bg-secondary/30 p-8 md:p-12 overflow-hidden">
+                 <div className="absolute -bottom-20 -right-20 w-60 h-60 bg-primary/20 rounded-full blur-3xl" />
+                 <div className="absolute -top-20 -left-20 w-60 h-60 bg-primary/20 rounded-full blur-3xl" />
+                <div className="grid md:grid-cols-2 gap-8 items-center">
+                    <div>
+                        <h2 className="text-3xl font-bold">Powered by Generative AI</h2>
+                        <p className="text-muted-foreground mt-4">
+                            Our state-of-the-art AI generates unique and challenging questions tailored to your chosen topic and difficulty. Never run out of new things to learn!
+                        </p>
+                    </div>
+                    <div className="p-8 bg-background/50 rounded-2xl border border-border">
+                        <QuizFormDemo />
+                    </div>
+                </div>
+            </div>
+        </section>
+
+      </main>
+      <footer className="border-t border-border py-6">
+        <div className="container mx-auto px-4 text-center text-muted-foreground text-sm">
+            &copy; {new Date().getFullYear()} QuizWiz. All rights reserved.
+        </div>
+      </footer>
     </div>
   );
 }
 
-    
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const QuizFormDemo = () => (
+    <div className="space-y-4">
+        <div className="space-y-2">
+            <label className="text-sm font-medium">Topic</label>
+            <Input placeholder="e.g., The Renaissance" className="bg-secondary/50 border-border" />
+        </div>
+        <div className="space-y-2">
+            <label className="text-sm font-medium">Difficulty</label>
+            <Select>
+                <SelectTrigger className="bg-secondary/50 border-border">
+                    <SelectValue placeholder="Select a difficulty..." />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="beginner">Beginner</SelectItem>
+                    <SelectItem value="intermediate">Intermediate</SelectItem>
+                    <SelectItem value="expert">Expert</SelectItem>
+                </SelectContent>
+            </Select>
+        </div>
+        <Button className="w-full" disabled>
+            <Plus className="mr-2 h-4 w-4" />
+            Generate Quiz
+        </Button>
+    </div>
+)
+import { Plus } from 'lucide-react';
