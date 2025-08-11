@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft } from 'lucide-react';
+import { Check, X, Clock, Loader2, ArrowLeft, ShieldQuestion } from 'lucide-react';
 
 import { type Quiz, type Question } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +11,6 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -93,7 +92,10 @@ export default function QuizPage() {
             setSelectedAnswer(null);
             setTimeLeft(TIME_PER_QUESTION);
         } else {
-            router.push(`/quiz/${quizId}/results?score=${score + points}`);
+            // Save final score before navigating
+            const finalScore = score + points;
+            localStorage.setItem(`quiz_score_${quizId}`, finalScore.toString());
+            router.push(`/quiz/${quizId}/results`);
         }
     }, 2000);
   };
@@ -110,54 +112,58 @@ export default function QuizPage() {
   const progress = ((currentQuestionIndex + 1) / quiz.questions.length) * 100;
 
   const getButtonClass = (option: string) => {
-    if (!isAnswered) return 'bg-white hover:bg-purple-100 border-purple-200 border-2 text-purple-800';
+    if (!isAnswered) return 'bg-secondary hover:bg-primary/20 border-border hover:border-primary text-foreground/80 hover:text-foreground';
 
     const isCorrect = option === currentQuestion.answer;
     const isSelected = option === selectedAnswer;
 
-    if(isCorrect) return 'bg-green-500 hover:bg-green-500 text-white border-green-700 border-2 animate-in zoom-in-105';
-    if(isSelected) return 'bg-red-500 hover:bg-red-500 text-white border-red-700 border-2';
+    if(isCorrect) return 'bg-green-500/20 border-green-500 text-white animate-in zoom-in-105';
+    if(isSelected) return 'bg-red-500/20 border-red-500 text-white';
     
-    return 'bg-white opacity-60';
+    return 'bg-secondary opacity-50';
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6">
-       <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => setIsExitDialogVisible(true)}>
-                <ArrowLeft className="w-6 h-6" />
+    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in-50 duration-500">
+       <div className="flex items-center justify-between gap-4">
+            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsExitDialogVisible(true)}>
+                <ArrowLeft className="w-5 h-5" />
             </Button>
-            <div className="text-lg font-bold">
-                {currentQuestionIndex + 1} / {quiz.questions.length}
+            <div className="flex-grow text-center">
+              <h1 className="text-2xl font-bold tracking-tight">{quiz.topic}</h1>
+              <p className="text-sm text-muted-foreground">{`Question ${currentQuestionIndex + 1} of ${quiz.questions.length}`}</p>
             </div>
-            <div className="flex items-center gap-2 text-lg font-bold text-primary">
+            <div className="flex items-center justify-end gap-2 text-lg font-bold text-primary w-20">
                 <Clock className="h-6 w-6" />
                 <span>{timeLeft}s</span>
             </div>
         </div>
-        <Progress value={progress} className="w-full h-3" />
+        <Progress value={progress} className="w-full h-2" />
         
-        <Card className="shadow-2xl border-none rounded-3xl bg-transparent">
+        <Card className="shadow-2xl border-none rounded-2xl bg-transparent">
         <CardContent className="pt-6">
           <div className="space-y-8">
-            <h2 className="text-2xl md:text-4xl text-center font-bold">
+            <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight">
               {currentQuestion.question}
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {currentQuestion.options.map((option) => (
+              {currentQuestion.options.map((option, index) => (
                 <Button
                   key={option}
                   onClick={() => handleAnswer(option)}
                   disabled={isAnswered}
-                  className={cn("h-auto py-6 text-lg rounded-2xl whitespace-normal justify-start transition-all duration-300 font-semibold", getButtonClass(option))}
+                  className={cn("h-auto p-4 text-base rounded-xl whitespace-normal justify-start transition-all duration-300 font-semibold border-2", getButtonClass(option))}
                 >
-                  {isAnswered && (
-                    <>
-                      {option === currentQuestion.answer && <Check className="mr-3 h-6 w-6" />}
-                      {option !== currentQuestion.answer && option === selectedAnswer && <X className="mr-3 h-6 w-6" />}
-                    </>
-                  )}
-                  {option}
+                  <div className="flex items-center w-full">
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black/10 flex items-center justify-center font-bold text-sm mr-3">{String.fromCharCode(65 + index)}</div>
+                    <span className="flex-grow text-left">{option}</span>
+                    {isAnswered && (
+                      <div className="ml-4">
+                        {option === currentQuestion.answer && <Check className="h-6 w-6 text-green-400" />}
+                        {option !== currentQuestion.answer && option === selectedAnswer && <X className="h-6 w-6 text-red-400" />}
+                      </div>
+                    )}
+                  </div>
                 </Button>
               ))}
             </div>
@@ -165,7 +171,7 @@ export default function QuizPage() {
         </CardContent>
       </Card>
       <AlertDialog open={isExitDialogVisible} onOpenChange={setIsExitDialogVisible}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-secondary">
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure you want to quit?</AlertDialogTitle>
             <AlertDialogDescription>

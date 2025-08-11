@@ -4,7 +4,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,22 +64,29 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
   };
 
   return (
-    <Card className="rounded-3xl p-4 md:p-8 bg-white/80 backdrop-blur-sm border-purple-100">
-      <CardHeader className="text-center">
-        <CardTitle className="text-3xl font-bold">Create a Quiz</CardTitle>
-        <CardDescription>Keep upgrading the latest science and knowledge everyday</CardDescription>
+    <Card className="rounded-2xl p-6 bg-secondary border-border h-full">
+      <CardHeader className="p-0">
+        <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-2xl font-bold">Create a Quiz</CardTitle>
+              <CardDescription>Generate a new quiz on any topic with AI.</CardDescription>
+            </div>
+        </div>
       </CardHeader>
       <CardContent className="p-0 pt-6">
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
               control={form.control}
               name="topic"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Topic</FormLabel>
+                  <FormLabel className="font-semibold">Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., Dinosaurs, Roman Empire..." {...field} className="rounded-xl h-12" />
+                    <Input placeholder="e.g., The Renaissance" {...field} className="rounded-xl h-12 bg-background" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -90,10 +97,10 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
               name="difficulty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Difficulty</FormLabel>
+                  <FormLabel className="font-semibold">Difficulty</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="rounded-xl h-12">
+                      <SelectTrigger className="rounded-xl h-12 bg-background">
                         <SelectValue placeholder="Select a difficulty level" />
                       </SelectTrigger>
                     </FormControl>

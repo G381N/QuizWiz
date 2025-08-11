@@ -3,11 +3,10 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/Header';
 import { BottomNav } from '@/components/BottomNav';
-import { Poppins } from 'next/font/google';
+import { Inter } from 'next/font/google';
 
-const poppins = Poppins({
+const inter = Inter({
   subsets: ['latin'],
-  weight: ['400', '500', '600', '700', '800'],
   variable: '--font-body',
 });
 
@@ -23,8 +22,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${poppins.variable} font-body antialiased min-h-screen flex flex-col`}>
+    <html lang="en" suppressHydrationWarning className="dark">
+      <body className={`${inter.variable} font-body antialiased min-h-screen flex flex-col bg-background`}>
         <Header />
         <main className="flex-grow container mx-auto px-4 py-8 mb-20 md:mb-0">
           {children}
