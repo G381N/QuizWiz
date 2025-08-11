@@ -8,12 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { type Quiz } from '@/types';
-import { ArrowRight, BarChart3, Brain, Medal, Rocket, Star, ToyBrick } from 'lucide-react';
-import * as React from 'react';
 import { cn } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
 
 interface QuizCardProps {
   quiz: Quiz;
@@ -31,25 +29,22 @@ const difficultyColors = {
 
 export function QuizCard({ quiz }: QuizCardProps) {
   return (
-    <Card className="flex flex-col h-full bg-secondary border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
-      <CardHeader>
-        <CardTitle className="font-bold text-xl group-hover:text-primary transition-colors">{quiz.topic}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-grow">
-        <p className="text-muted-foreground text-sm">
-          A {quiz.questions.length}-question quiz to test your knowledge.
-        </p>
-      </CardContent>
-      <CardFooter className="flex justify-between items-center">
-        <Badge variant="outline" className={cn("capitalize border", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
-          {quiz.difficulty}
-        </Badge>
-        <Button asChild variant="ghost" size="sm">
-          <Link href={`/quiz/${quiz.id}`}>
-            Play Now <ArrowRight className="ml-2 h-4 w-4" />
-          </Link>
-        </Button>
-      </CardFooter>
-    </Card>
+    <Link href={`/quiz/${quiz.id}`} className="group">
+      <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl">
+        <CardHeader>
+          <CardTitle className="font-bold text-lg">{quiz.topic}</CardTitle>
+        </CardHeader>
+        <CardContent className="flex-grow">
+           <Badge variant="outline" className={cn("capitalize border text-xs", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
+            {quiz.difficulty}
+          </Badge>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-primary flex items-center">
+            Start Quiz <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
+          </p>
+        </CardFooter>
+      </Card>
+    </Link>
   );
 }

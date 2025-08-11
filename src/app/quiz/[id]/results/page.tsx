@@ -1,12 +1,10 @@
 'use client';
 
 import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Award, Home, RotateCw, Star } from 'lucide-react';
+import { Home, RotateCw } from 'lucide-react';
 import * as React from 'react';
-import Image from 'next/image';
 
 export default function ResultsPage() {
   const router = useRouter();
@@ -31,11 +29,20 @@ export default function ResultsPage() {
 
   return (
     <div className="flex items-center justify-center min-h-[70vh]">
-      <Card className="w-full max-w-md text-center shadow-2xl animate-in fade-in zoom-in-95 rounded-2xl p-6 bg-secondary border border-border">
+      <Card className="w-full max-w-md text-center shadow-2xl animate-in fade-in zoom-in-95 rounded-2xl p-6 bg-secondary/50 border border-border">
         <CardHeader className="p-0">
-          <div className="relative w-48 h-24 mx-auto">
-             <Award className="absolute -top-4 left-1/2 -translate-x-1/2 text-primary w-24 h-24" />
-          </div>
+           <svg
+              className="w-24 h-24 mx-auto text-primary"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M12 2 L15.09 8.26 L22 9.27 L17 14.14 L18.18 21.02 L12 17.77 L5.82 21.02 L7 14.14 L2 9.27 L8.91 8.26 z" />
+              <path d="M12 2" />
+            </svg>
           <CardTitle className="text-2xl font-bold mt-4">Quiz Complete!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 my-8">

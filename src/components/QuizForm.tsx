@@ -4,7 +4,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Loader2, Sparkles } from 'lucide-react';
+import { ArrowRight, Loader2 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,7 +23,6 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './ui/card';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
@@ -64,19 +63,6 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
   };
 
   return (
-    <Card className="rounded-2xl p-6 bg-secondary border-border h-full">
-      <CardHeader className="p-0">
-        <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                <Sparkles className="w-6 h-6 text-primary" />
-            </div>
-            <div>
-              <CardTitle className="text-2xl font-bold">Create a Quiz</CardTitle>
-              <CardDescription>Generate a new quiz on any topic with AI.</CardDescription>
-            </div>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0 pt-6">
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
             <FormField
@@ -86,7 +72,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                 <FormItem>
                   <FormLabel className="font-semibold">Topic</FormLabel>
                   <FormControl>
-                    <Input placeholder="e.g., The Renaissance" {...field} className="rounded-xl h-12 bg-background" />
+                    <Input placeholder="e.g., The Renaissance" {...field} className="rounded-xl h-12 bg-secondary/50 border-border" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -100,7 +86,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                   <FormLabel className="font-semibold">Difficulty</FormLabel>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <SelectTrigger className="rounded-xl h-12 bg-background">
+                      <SelectTrigger className="rounded-xl h-12 bg-secondary/50 border-border">
                         <SelectValue placeholder="Select a difficulty level" />
                       </SelectTrigger>
                     </FormControl>
@@ -135,7 +121,5 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
             </Button>
           </form>
         </Form>
-      </CardContent>
-    </Card>
   );
 }
