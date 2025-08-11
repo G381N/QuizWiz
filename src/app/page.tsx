@@ -40,6 +40,11 @@ export default function Home() {
             questions: [
               { question: 'Which planet is known as the Red Planet?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Mars' },
               { question: 'What is the largest planet in our solar system?', options: ['Earth', 'Mars', 'Jupiter', 'Saturn'], answer: 'Jupiter' }
+            ],
+            leaderboard: [
+                { rank: 1, name: 'CygnusX1', score: 9850, avatar: '/avatars/1.svg' },
+                { rank: 2, name: 'Vortex', score: 9756, avatar: '/avatars/2.svg' },
+                { rank: 3, name: 'Nebula', score: 8650, avatar: '/avatars/3.svg' },
             ]
           },
           {
@@ -48,7 +53,8 @@ export default function Home() {
             difficulty: 'intermediate',
             questions: [
               { question: 'Which is the largest ocean?', options: ['Atlantic', 'Indian', 'Arctic', 'Pacific'], answer: 'Pacific' }
-            ]
+            ],
+            leaderboard: []
           }
         ];
         setQuizzes(mockQuizzes);
@@ -68,6 +74,7 @@ export default function Home() {
           topic,
           difficulty,
           questions: result.quiz,
+          leaderboard: [],
         };
         const updatedQuizzes = [newQuiz, ...quizzes];
         setQuizzes(updatedQuizzes);
@@ -163,3 +170,5 @@ export default function Home() {
     </div>
   );
 }
+
+    

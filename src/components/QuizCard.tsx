@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -11,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { type Quiz } from '@/types';
 import { cn } from '@/lib/utils';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Trophy } from 'lucide-react';
 
 interface QuizCardProps {
   quiz: Quiz;
@@ -28,19 +29,27 @@ const difficultyColors = {
 
 
 export function QuizCard({ quiz }: QuizCardProps) {
+  const topPlayer = quiz.leaderboard?.[0];
+
   return (
     <Link href={`/quiz/${quiz.id}`} className="group">
       <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl">
         <CardHeader>
           <CardTitle className="font-bold text-lg">{quiz.topic}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-grow">
-           <Badge variant="outline" className={cn("capitalize border text-xs", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
+           <Badge variant="outline" className={cn("capitalize border text-xs w-fit", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
             {quiz.difficulty}
           </Badge>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-2">
+            <div className="text-sm text-muted-foreground flex items-center gap-2">
+                <Trophy className="w-4 h-4 text-yellow-400" />
+                <span>
+                    {topPlayer ? `${topPlayer.name} - ${topPlayer.score} PTS` : 'No scores yet'}
+                </span>
+            </div>
         </CardContent>
         <CardFooter>
-          <p className="text-sm text-primary flex items-center">
+          <p className="text-sm text-primary flex items-center font-semibold">
             Start Quiz <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
           </p>
         </CardFooter>
@@ -48,3 +57,5 @@ export function QuizCard({ quiz }: QuizCardProps) {
     </Link>
   );
 }
+
+    
