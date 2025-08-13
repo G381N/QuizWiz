@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Loader2, Star, Search, User as UserIcon } from 'lucide-react';
+import { Crown, Loader2, Star, Search, User as UserIcon, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
@@ -60,7 +60,7 @@ export default function LeaderboardPage() {
   }, [leaderboard, searchTerm]);
   
   const topThree = filteredLeaderboard.slice(0,3);
-  const restOfPlayers = filteredLeaderboard.slice(3);
+  const restOfPlayers = filteredLeaderboard.slice(0); // Show all players in the table
 
   const currentUserRank = React.useMemo(() => {
     if (!user) return null;
@@ -87,17 +87,15 @@ export default function LeaderboardPage() {
         <p className="mt-2 text-muted-foreground">See who's at the top of their game</p>
       </div>
       
-      {topThree.length > 0 && (
-        <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
-            {secondPlace && <PodiumCard player={secondPlace} rank={2} />}
-            {firstPlace && <PodiumCard player={firstPlace} rank={1} />}
-            {thirdPlace && <PodiumCard player={thirdPlace} rank={3} />}
-        </div>
-      )}
+      <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
+          <PodiumCard player={secondPlace} rank={2} />
+          <PodiumCard player={firstPlace} rank={1} />
+          <PodiumCard player={thirdPlace} rank={3} />
+      </div>
       
       <Separator />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
         <Card className="md:col-span-1 bg-secondary/50 border-primary/30">
           <CardContent className="p-4 flex items-center gap-4">
              <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary/10 text-primary">
@@ -113,7 +111,7 @@ export default function LeaderboardPage() {
         <div className="relative md:col-span-2">
             <Input 
                 placeholder="Search for a player..." 
-                className="pl-10 h-full text-base" 
+                className="pl-10 h-14 text-base" 
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -158,7 +156,7 @@ export default function LeaderboardPage() {
             )) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  {filteredLeaderboard.length > 3 ? 'No other players found.' : 'The leaderboard is just getting started!'}
+                  The leaderboard is just getting started! Be the first to the top.
                 </TableCell>
               </TableRow>
             )}
@@ -170,7 +168,7 @@ export default function LeaderboardPage() {
 }
 
 
-const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry, rank: number}) => {
+const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry | undefined, rank: number}) => {
     const rankConfig = {
         1: { border: 'border-yellow-400', text: 'text-yellow-400', icon: <Crown className="w-10 h-10 text-yellow-400 mb-2 drop-shadow-lg" />, size: 'w-48', imageSize: 100 },
         2: { border: 'border-slate-400', text: 'text-slate-400', icon: <TrophyIcon color="#C0C0C0" className="w-8 h-8 mb-2" />, size: 'w-40 mt-8', imageSize: 80 },
@@ -178,6 +176,22 @@ const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry, rank: numb
     };
     
     const config = rankConfig[rank as keyof typeof rankConfig];
+
+    if (!player) {
+      return (
+         <div className={cn(
+            "flex flex-col items-center text-center transition-all duration-300",
+            config.size
+        )}>
+            {config.icon}
+            <div className={cn("rounded-full border-4 bg-background/50 flex items-center justify-center", config.border)} style={{width: config.imageSize, height: config.imageSize}}>
+                <Trophy className={cn("w-1/2 h-1/2", config.text, "opacity-50")} />
+            </div>
+            <p className="mt-3 font-bold text-lg text-muted-foreground">Vacant</p>
+            <p className={cn("text-2xl font-extrabold", config.text)}>--- PTS</p>
+        </div>
+      )
+    }
 
     return (
         <div className={cn(
@@ -220,3 +234,5 @@ const TrophyIcon = ({color, className}: {color: string, className?: string}) => 
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>
 )
+
+    
