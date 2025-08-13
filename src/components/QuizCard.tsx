@@ -1,7 +1,6 @@
 
 'use client';
 
-import Link from 'next/link';
 import {
   Card,
   CardContent,
@@ -13,14 +12,30 @@ import { Badge } from '@/components/ui/badge';
 import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
-import { useAuth } from '@/hooks/use-auth';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { ChevronDown } from 'lucide-react';
 
 interface QuizCardProps {
   quiz: Quiz;
-  isCompleted: boolean;
+  completedQuizKeys: string[];
+  onDifficultyChange: (topic: string, category: string, newDifficulty: string) => void;
 }
+
+const difficulties = [
+  'dumb-dumb',
+  'novice',
+  'beginner',
+  'intermediate',
+  'advanced',
+  'expert',
+];
 
 const difficultyColors = {
   'dumb-dumb': 'bg-gray-500/10 text-gray-400 border-gray-500/20',
@@ -57,9 +72,13 @@ const medalColors: { [key: number]: string } = {
 };
 
 
-export function QuizCard({ quiz, isCompleted }: QuizCardProps) {
+export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCardProps) {
   const router = useRouter();
   const { toast } = useToast();
+
+  const isCompleted = (difficulty: string) => {
+    return completedQuizKeys.includes(`${quiz.topic}_${difficulty}`);
+  }
 
   const uniqueTopPlayers = quiz.leaderboard?.reduce((acc, player) => {
     if (!acc.some(p => p.name === player.name)) {
@@ -67,32 +86,54 @@ export function QuizCard({ quiz, isCompleted }: QuizCardProps) {
     }
     return acc;
   }, [] as QuizLeaderboardEntry[]).slice(0, 3) || [];
-
+  
   const handleStartQuiz = () => {
-    if (isCompleted) {
+    if (isCompleted(quiz.difficulty)) {
         toast({
-            variant: 'destructive',
-            title: "Quiz Already Taken",
-            description: "You can only attempt each quiz once."
+            title: "Difficulty Already Completed",
+            description: "You have already completed this quiz on this difficulty. Try another one!"
         })
     } else {
         router.push(`/quiz/${quiz.id}`);
     }
   }
-
+  
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
       <CardHeader>
         <div className="flex justify-between items-start">
             <CardTitle className="font-bold text-lg pr-2">{quiz.topic}</CardTitle>
-            <Badge variant="outline" className={cn("capitalize border text-xs w-fit shrink-0", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
-                {quiz.difficulty}
-            </Badge>
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    "capitalize border text-xs w-fit shrink-0 cursor-pointer flex items-center gap-1",
+                    difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner
+                  )}
+                >
+                  {quiz.difficulty}
+                  <ChevronDown className="h-3 w-3" />
+                </Badge>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                {difficulties.map((d) => (
+                  <DropdownMenuItem
+                    key={d}
+                    disabled={isCompleted(d)}
+                    onSelect={() => onDifficultyChange(quiz.topic, quiz.category, d)}
+                    className="capitalize"
+                  >
+                    {d}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
         <p className="text-sm text-muted-foreground pt-1">{quiz.description || 'A fun quiz on this interesting topic!'}</p>
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Leaderboard</p>
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Leaderboard ({quiz.difficulty})</p>
           {uniqueTopPlayers.length > 0 ? (
             <div className="space-y-2">
                 {uniqueTopPlayers.map((player) => (
@@ -110,8 +151,8 @@ export function QuizCard({ quiz, isCompleted }: QuizCardProps) {
           )}
       </CardContent>
       <CardFooter>
-        <Button onClick={handleStartQuiz} className="w-full" disabled={isCompleted}>
-            {isCompleted ? "Completed" : "Start Quiz"}
+        <Button onClick={handleStartQuiz} className="w-full" disabled={isCompleted(quiz.difficulty)}>
+            {isCompleted(quiz.difficulty) ? "Completed" : "Start Quiz"}
         </Button>
       </CardFooter>
     </Card>

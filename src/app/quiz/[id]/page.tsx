@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, runTransaction, increment, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, runTransaction, increment, collection, query, where, getDocs, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
@@ -71,13 +71,26 @@ export default function QuizPage() {
       if (!quizId || !user) return;
       setIsLoading(true);
       try {
+        const quizDocRef = doc(db, 'quizzes', quizId);
         const userDocRef = doc(db, 'users', user.uid);
         
-        const completedDocRef = doc(userDocRef, 'completedQuizzes', quizId);
-        const [completedDocSnap, userDocSnap] = await Promise.all([
-          getDoc(completedDocRef),
-          getDoc(userDocRef)
+        const [quizDocSnap, userDocSnap] = await Promise.all([
+            getDoc(quizDocRef),
+            getDoc(userDocRef)
         ]);
+        
+        if (!quizDocSnap.exists()) {
+            toast({ variant: 'destructive', title: 'Error', description: 'Quiz not found.' });
+            router.push('/dashboard');
+            return;
+        }
+
+        const quizData = { id: quizDocSnap.id, ...quizDocSnap.data() } as Quiz;
+        setQuiz(quizData);
+
+        const completionKey = `${quizData.topic}_${quizData.difficulty}`;
+        const completedDocRef = doc(userDocRef, 'completedQuizzes', completionKey);
+        const completedDocSnap = await getDoc(completedDocRef);
 
         if (completedDocSnap.exists()) {
             setIsCompleted(true);
@@ -101,7 +114,6 @@ export default function QuizPage() {
                 variant: 'destructive',
                 duration: 5000,
             });
-            // Mark attack as used
             await updateDoc(doc(db, 'attacks', attackDoc.id), { used: true });
         }
 
@@ -114,18 +126,6 @@ export default function QuizPage() {
                 await updateDoc(userDocRef, { 'perks.score-booster-active': false }); // Consume it
                 toast({ title: 'Score Booster Active!', description: 'Your points for this quiz will be doubled!' });
             }
-        }
-
-        const docRef = doc(db, 'quizzes', quizId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
-          if (!quizData.leaderboard) {
-            quizData.leaderboard = [];
-          }
-          setQuiz(quizData);
-        } else {
-          router.push('/dashboard');
         }
       } catch (error) {
         console.error("Failed to load quiz", error);
@@ -216,14 +216,23 @@ export default function QuizPage() {
       await runTransaction(db, async (transaction) => {
         const quizDocRef = doc(db, 'quizzes', quizId);
         const userDocRef = doc(db, "users", user.uid);
-        const completedQuizDocRef = doc(userDocRef, 'completedQuizzes', quizId);
+        
+        // Use a composite key for completed quizzes to track per difficulty
+        const completionKey = `${quiz.topic}_${quiz.difficulty}`;
+        const completedQuizDocRef = doc(userDocRef, 'completedQuizzes', completionKey);
         
         const quizDoc = await transaction.get(quizDocRef);
         
         if (!quizDoc.exists()) throw "Quiz does not exist!";
 
-        // Mark quiz as completed for the user
-        transaction.set(completedQuizDocRef, { completedAt: new Date(), score: finalScore });
+        // Mark quiz as completed for the user with the new key
+        transaction.set(completedQuizDocRef, { 
+            quizId: quiz.id,
+            topic: quiz.topic,
+            difficulty: quiz.difficulty,
+            completedAt: serverTimestamp(), 
+            score: finalScore 
+        });
 
         // Update quiz-specific leaderboard
         const newEntry = { 
@@ -493,7 +502,7 @@ export default function QuizPage() {
             </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useScoreBooster} disabled={isScoreBoosterActive || (userPerks['score-booster'] ?? 0) <= 0}>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useScoreBooster} disabled={isAnswered || isScoreBoosterActive || (userPerks['score-booster'] ?? 0) <= 0}>
                         <Zap className={cn("w-8 h-8", isScoreBoosterActive && "text-purple-400")} />
                          <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['score-booster'] || 0}</span>
                     </Button>
@@ -507,4 +516,3 @@ export default function QuizPage() {
     </TooltipProvider>
   );
 }
-

@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { QuizForm } from '@/components/QuizForm';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, getDoc, doc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Input } from '@/components/ui/input';
 import {
@@ -36,7 +36,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
-  const [completedQuizzes, setCompletedQuizzes] = React.useState<string[]>([]);
+  const [completedQuizKeys, setCompletedQuizKeys] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
   const [quizCategories, setQuizCategories] = React.useState(defaultCategories);
@@ -71,12 +71,11 @@ export default function DashboardPage() {
         setQuizCategories(prev => [...new Set([...prev, ...dynamicCategories])])
 
 
-        // Fetch user's completed quizzes
-        const userDocRef = doc(db, 'users', user.uid);
-        const completedQuizzesCollectionRef = collection(userDocRef, 'completedQuizzes');
+        // Fetch user's completed quizzes to get keys like "Topic_difficulty"
+        const completedQuizzesCollectionRef = collection(db, 'users', user.uid, 'completedQuizzes');
         const completedSnapshot = await getDocs(completedQuizzesCollectionRef);
         const completedIds = completedSnapshot.docs.map(doc => doc.id);
-        setCompletedQuizzes(completedIds);
+        setCompletedQuizKeys(completedIds);
 
       } catch (error) {
         console.error("Failed to fetch data from Firestore", error);
@@ -94,10 +93,10 @@ export default function DashboardPage() {
     }
   }, [user, toast]);
 
-  const handleCreateQuiz = async (topic: string, difficulty: string, category: string) => {
+  const handleCreateQuiz = async (topic: string, difficulty: string, category: string): Promise<Quiz | null> => {
     if (!user) {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a quiz.' });
-      return false;
+      return null;
     }
     try {
       const result: GenerateQuizOutput = await generateQuiz({ topic, difficulty, category });
@@ -118,10 +117,9 @@ export default function DashboardPage() {
         if (!quizCategories.includes(category)) {
           setQuizCategories(prev => [...new Set([...prev, category])]);
         }
-        setQuizzes([newQuiz, ...quizzes]);
+        setQuizzes(prev => [newQuiz, ...prev]);
         setIsQuizFormOpen(false);
-        router.push(`/quiz/${newQuiz.id}`);
-        return true;
+        return newQuiz;
       } else {
         throw new Error('Failed to generate quiz, please try again.');
       }
@@ -132,14 +130,48 @@ export default function DashboardPage() {
         title: 'Error',
         description: error instanceof Error ? error.message : 'An unknown error occurred.',
       });
-      return false;
+      return null;
+    }
+  };
+
+  const handleDifficultyChange = async (topic: string, category: string, newDifficulty: string) => {
+    // 1. Check if a quiz with this topic and new difficulty already exists.
+    const q = query(collection(db, 'quizzes'), 
+      where('topic', '==', topic), 
+      where('difficulty', '==', newDifficulty)
+    );
+    
+    const querySnapshot = await getDocs(q);
+
+    if (!querySnapshot.empty) {
+      // Quiz exists, navigate to it
+      const existingQuiz = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Quiz;
+      router.push(`/quiz/${existingQuiz.id}`);
+    } else {
+      // Quiz does not exist, create it
+      toast({ title: 'Generating New Quiz...', description: `Creating a "${newDifficulty}" version of "${topic}".`});
+      const newQuiz = await handleCreateQuiz(topic, newDifficulty, category);
+      if (newQuiz) {
+        router.push(`/quiz/${newQuiz.id}`);
+      }
     }
   };
   
   const allCategories = React.useMemo(() => ['All', ...new Set(quizCategories)], [quizCategories]);
 
   const filteredAndSortedQuizzes = React.useMemo(() => {
-    return quizzes
+    const uniqueTopics = new Map<string, Quiz>();
+    
+    // Sort by creation date to show the most recent version of a topic
+    const sortedByDate = [...quizzes].sort((a,b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+
+    for (const quiz of sortedByDate) {
+        if (!uniqueTopics.has(quiz.topic.toLowerCase())) {
+            uniqueTopics.set(quiz.topic.toLowerCase(), quiz);
+        }
+    }
+
+    return Array.from(uniqueTopics.values())
       .filter(quiz => {
         const matchesSearch = quiz.topic.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All' || quiz.category === selectedCategory;
@@ -226,7 +258,17 @@ export default function DashboardPage() {
                     What would you like to learn about today?
                     </DialogDescription>
                 </DialogHeader>
-                <QuizForm onCreateQuiz={handleCreateQuiz} categories={quizCategories} />
+                <QuizForm 
+                  onCreateQuiz={async (topic, diff, cat) => {
+                    const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                    if (newQuiz) {
+                      router.push(`/quiz/${newQuiz.id}`);
+                      return true;
+                    }
+                    return false;
+                  }} 
+                  categories={quizCategories} 
+                />
                 </DialogContent>
             </Dialog>
         </div>
@@ -235,7 +277,12 @@ export default function DashboardPage() {
       {filteredAndSortedQuizzes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
-            <QuizCard key={quiz.id} quiz={quiz} isCompleted={completedQuizzes.includes(quiz.id)} />
+            <QuizCard 
+              key={quiz.topic} 
+              quiz={quiz} 
+              onDifficultyChange={handleDifficultyChange}
+              completedQuizKeys={completedQuizKeys}
+            />
           ))}
         </div>
       ) : (
@@ -274,7 +321,17 @@ export default function DashboardPage() {
                       What would you like to learn about today?
                     </DialogDescription>
                   </DialogHeader>
-                  <QuizForm onCreateQuiz={handleCreateQuiz} categories={quizCategories} />
+                  <QuizForm 
+                    onCreateQuiz={async (topic, diff, cat) => {
+                      const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                      if (newQuiz) {
+                        router.push(`/quiz/${newQuiz.id}`);
+                        return true;
+                      }
+                      return false;
+                    }} 
+                    categories={quizCategories} 
+                  />
                 </DialogContent>
               </Dialog>
           </div>
