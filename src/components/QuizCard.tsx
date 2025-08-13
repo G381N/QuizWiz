@@ -97,6 +97,8 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
         router.push(`/quiz/${quiz.id}`);
     }
   }
+
+  const availableDifficulties = difficulties.filter(d => d !== quiz.difficulty && !isCompleted(d));
   
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
@@ -117,10 +119,9 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
                 </Badge>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {difficulties.map((d) => (
+                {availableDifficulties.map((d) => (
                   <DropdownMenuItem
                     key={d}
-                    disabled={isCompleted(d)}
                     onSelect={() => onDifficultyChange(quiz.topic, quiz.category, d)}
                     className="capitalize"
                   >

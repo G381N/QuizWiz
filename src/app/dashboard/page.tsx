@@ -135,6 +135,16 @@ export default function DashboardPage() {
   };
 
   const handleDifficultyChange = async (topic: string, category: string, newDifficulty: string) => {
+    const isAlreadyCompleted = completedQuizKeys.includes(`${topic}_${newDifficulty}`);
+    if (isAlreadyCompleted) {
+        toast({
+            variant: "destructive",
+            title: "Already Completed",
+            description: `You have already completed the "${newDifficulty}" difficulty for this topic.`,
+        });
+        return;
+    }
+    
     // 1. Check if a quiz with this topic and new difficulty already exists.
     const q = query(collection(db, 'quizzes'), 
       where('topic', '==', topic), 
@@ -278,7 +288,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
             <QuizCard 
-              key={quiz.topic} 
+              key={quiz.topic + quiz.difficulty} 
               quiz={quiz} 
               onDifficultyChange={handleDifficultyChange}
               completedQuizKeys={completedQuizKeys}
