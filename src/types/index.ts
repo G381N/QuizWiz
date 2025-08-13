@@ -42,6 +42,7 @@ export type Quiz = {
 };
 
 export type OverallLeaderboardEntry = {
+    id: string;
     rank: number;
     name: string;
     quizzesSolved: number;
@@ -55,3 +56,5 @@ export type UserProfile = {
     quizzesSolved: number;
     totalScore: number;
 }
+
+    
