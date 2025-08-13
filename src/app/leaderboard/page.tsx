@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Loader2, Star, Search, User as UserIcon, Trophy } from 'lucide-react';
+import { Crown, Loader2, Star, Search, User as UserIcon, Trophy, Award, Album } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
@@ -16,7 +16,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -59,7 +59,6 @@ export default function LeaderboardPage() {
     return leaderboard.filter(player => player.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [leaderboard, searchTerm]);
   
-  const topThree = filteredLeaderboard.slice(0,3);
   const restOfPlayers = filteredLeaderboard.slice(0); // Show all players in the table
 
   const currentUserRank = React.useMemo(() => {
@@ -76,15 +75,15 @@ export default function LeaderboardPage() {
     )
   }
   
-  const firstPlace = topThree.find(p => p.rank === 1);
-  const secondPlace = topThree.find(p => p.rank === 2);
-  const thirdPlace = topThree.find(p => p.rank === 3);
+  const firstPlace = filteredLeaderboard.find(p => p.rank === 1);
+  const secondPlace = filteredLeaderboard.find(p => p.rank === 2);
+  const thirdPlace = filteredLeaderboard.find(p => p.rank === 3);
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
-      <div className="text-center">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
         <h1 className="text-4xl font-extrabold tracking-tight">Leaderboard</h1>
-        <p className="mt-2 text-muted-foreground">See who's at the top of their game</p>
+        <UserStatsCard userRank={currentUserRank} />
       </div>
       
       <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
@@ -95,28 +94,14 @@ export default function LeaderboardPage() {
       
       <Separator />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
-        <Card className="md:col-span-1 bg-secondary/50 border-primary/30">
-          <CardContent className="p-4 flex items-center gap-4">
-             <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary/10 text-primary">
-                {currentUserRank ? currentUserRank.rank : <UserIcon className="w-6 h-6"/>}
-            </div>
-            <div className="flex-grow">
-              <p className="font-bold">{currentUserRank ? currentUserRank.name : 'Your Rank'}</p>
-              <p className="text-sm text-primary font-bold">{currentUserRank ? `${currentUserRank.totalScore.toLocaleString()} PTS` : 'Play a quiz to get ranked!'}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <div className="relative md:col-span-2">
-            <Input 
-                placeholder="Search for a player..." 
-                className="pl-10 h-14 text-base" 
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-        </div>
+      <div className="relative">
+          <Input 
+              placeholder="Search for a player..." 
+              className="pl-10 h-12 text-base w-full" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
       </div>
 
       <div className="bg-secondary/30 rounded-2xl border border-border">
@@ -216,6 +201,44 @@ const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry | undefined
     )
 }
 
+const UserStatsCard = ({ userRank }: { userRank: OverallLeaderboardEntry | null }) => {
+    if (!userRank) {
+        return (
+            <Card className="bg-secondary/30 md:max-w-xs w-full">
+                <CardContent className="p-4 flex items-center justify-center">
+                    <p className="text-muted-foreground">Play a quiz to get ranked!</p>
+                </CardContent>
+            </Card>
+        );
+    }
+    return (
+        <Card className="bg-secondary/30 md:max-w-xs w-full">
+          <CardHeader className="p-4 flex flex-row items-center gap-4">
+             <Image src={userRank.avatar} alt={userRank.name} width={48} height={48} className="rounded-full border-2 border-primary" />
+             <div>
+                <CardContent className="p-0 text-base font-bold">{userRank.name}</CardContent>
+                <p className="text-sm text-muted-foreground">Your Stats</p>
+             </div>
+          </CardHeader>
+          <Separator />
+          <CardContent className="p-4 grid grid-cols-3 divide-x divide-border">
+              <div className="flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground">Rank</p>
+                  <p className="text-xl font-bold text-primary">#{userRank.rank}</p>
+              </div>
+              <div className="flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground">Score</p>
+                  <p className="text-xl font-bold">{userRank.totalScore.toLocaleString()}</p>
+              </div>
+               <div className="flex flex-col items-center">
+                  <p className="text-xs text-muted-foreground">Quizzes</p>
+                  <p className="text-xl font-bold">{userRank.quizzesSolved}</p>
+              </div>
+          </CardContent>
+        </Card>
+    )
+}
+
 const TrophyIcon = ({color, className}: {color: string, className?: string}) => (
     <svg 
         xmlns="http://www.w3.org/2000/svg" 
@@ -234,5 +257,4 @@ const TrophyIcon = ({color, className}: {color: string, className?: string}) => 
             <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
     </svg>
 )
-
     
