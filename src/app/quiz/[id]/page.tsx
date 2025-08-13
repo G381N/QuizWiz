@@ -3,8 +3,8 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft, ShieldCheck, Zap, Star, HelpCircle, SkipForward } from 'lucide-react';
-import { type Quiz, type UserPerks } from '@/types';
+import { Check, X, Clock, Loader2, ArrowLeft, ShieldCheck, Zap, Star, HelpCircle, SkipForward, ShieldAlert } from 'lucide-react';
+import { type Quiz, type UserPerks, type Attack } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -19,10 +19,11 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, runTransaction, increment, collection, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, runTransaction, increment, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
-const TIME_PER_QUESTION = 15; // seconds
+const DEFAULT_TIME_PER_QUESTION = 15; // seconds
+const ATTACKED_TIME_PER_QUESTION = 5;
 const POINTS_PER_SECOND = 10;
 const STREAK_BONUS = 50;
 const DIFFICULTY_MULTIPLIER: { [key: string]: number } = {
@@ -45,7 +46,8 @@ export default function QuizPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = React.useState(0);
   const [selectedAnswer, setSelectedAnswer] = React.useState<string | null>(null);
   const [score, setScore] = React.useState(0);
-  const [timeLeft, setTimeLeft] = React.useState(TIME_PER_QUESTION);
+  const [timePerQuestion, setTimePerQuestion] = React.useState(DEFAULT_TIME_PER_QUESTION);
+  const [timeLeft, setTimeLeft] = React.useState(DEFAULT_TIME_PER_QUESTION);
   const [isAnswered, setIsAnswered] = React.useState(false);
   const [isExitDialogVisible, setIsExitDialogVisible] = React.useState(false);
   const [streak, setStreak] = React.useState(0);
@@ -53,6 +55,8 @@ export default function QuizPage() {
   const [isCompleted, setIsCompleted] = React.useState(false);
   const [userPerks, setUserPerks] = React.useState<UserPerks>({});
   const [shuffledOptions, setShuffledOptions] = React.useState<string[]>([]);
+  const [activeAttack, setActiveAttack] = React.useState<Attack | null>(null);
+
 
   const timerRef = React.useRef<NodeJS.Timeout>();
   const totalScoreRef = React.useRef(0);
@@ -64,7 +68,6 @@ export default function QuizPage() {
       try {
         const userDocRef = doc(db, 'users', user.uid);
         
-        // Check if user has already completed this quiz
         const completedDocRef = doc(userDocRef, 'completedQuizzes', quizId);
         const [completedDocSnap, userDocSnap] = await Promise.all([
           getDoc(completedDocRef),
@@ -76,12 +79,32 @@ export default function QuizPage() {
             setIsLoading(false);
             return;
         }
+        
+        // Check for active time attacks
+        const attacksRef = collection(db, 'attacks');
+        const q = query(attacksRef, where('targetId', '==', user.uid), where('used', '==', false));
+        const attackSnapshot = await getDocs(q);
+        if (!attackSnapshot.empty) {
+            const attackDoc = attackSnapshot.docs[0];
+            const attackData = { id: attackDoc.id, ...attackDoc.data() } as Attack;
+            setActiveAttack(attackData);
+            setTimePerQuestion(ATTACKED_TIME_PER_QUESTION);
+            setTimeLeft(ATTACKED_TIME_PER_QUESTION);
+            toast({
+                title: 'You are under attack!',
+                description: `${attackData.attackerName} used a Time Attack! You only have 5 seconds per question.`,
+                variant: 'destructive',
+                duration: 5000,
+            });
+            // Mark attack as used
+            await updateDoc(doc(db, 'attacks', attackDoc.id), { used: true });
+        }
+
 
         if (userDocSnap.exists()) {
             setUserPerks(userDocSnap.data().perks || {});
         }
 
-        // Fetch quiz data
         const docRef = doc(db, 'quizzes', quizId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -134,7 +157,7 @@ export default function QuizPage() {
         setCurrentQuestionIndex((prev) => prev + 1);
         setIsAnswered(false);
         setSelectedAnswer(null);
-        setTimeLeft(TIME_PER_QUESTION);
+        setTimeLeft(timePerQuestion);
       } else {
         if (user) {
           updateLeaderboards(totalScoreRef.current);
@@ -353,8 +376,9 @@ export default function QuizPage() {
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             {streak > 1 && <div className="flex items-center gap-1 text-orange-400 font-bold animate-in fade-in-0 zoom-in-50"><Zap className="w-4 h-4"/> x{streak}</div>}
+                            {activeAttack && <div className="flex items-center gap-1 text-red-500 font-bold animate-in fade-in-0"><ShieldAlert className="w-4 h-4"/> Attacked!</div>}
                         </div>
-                         <div className="flex items-center justify-end gap-2 text-lg font-bold text-primary">
+                         <div className={cn("flex items-center justify-end gap-2 text-lg font-bold", activeAttack ? "text-red-500 animate-pulse" : "text-primary")}>
                             <Clock className="h-6 w-6" />
                             <span>{timeLeft}s</span>
                         </div>

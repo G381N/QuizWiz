@@ -27,6 +27,7 @@ export type QuizLeaderboardEntry = {
     name: string;
     score: number;
     avatar: string;
+    userId: string;
 }
 
 export type Quiz = {
@@ -52,6 +53,7 @@ export type OverallLeaderboardEntry = {
 }
 
 export type UserProfile = {
+    uid: string;
     displayName: string;
     photoURL: string;
     quizzesSolved: number;
@@ -72,5 +74,15 @@ export type UserPerks = {
     'score-booster'?: number;
     'time-attack'?: number;
     'skip-question'?: number;
+}
+
+export type Attack = {
+    id?: string;
+    attackerId: string;
+    attackerName: string;
+    targetId: string;
+    targetName: string;
+    createdAt: Timestamp;
+    used: boolean;
 }
     
