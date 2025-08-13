@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -23,10 +24,12 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { quizCategories } from '@/ai/flows/generate-quiz';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
   difficulty: z.string({ required_error: 'Please select a difficulty.' }),
+  category: z.string({ required_error: 'Please select a category.' }),
 });
 
 type QuizFormValues = z.infer<typeof quizFormSchema>;
@@ -41,7 +44,7 @@ const difficulties = [
 ];
 
 interface QuizFormProps {
-  onCreateQuiz: (topic: string, difficulty: string) => Promise<boolean>;
+  onCreateQuiz: (topic: string, difficulty: string, category: string) => Promise<boolean>;
 }
 
 export function QuizForm({ onCreateQuiz }: QuizFormProps) {
@@ -56,7 +59,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
 
   const onSubmit = async (values: QuizFormValues) => {
     setIsLoading(true);
-    const success = await onCreateQuiz(values.topic, values.difficulty);
+    const success = await onCreateQuiz(values.topic, values.difficulty, values.category);
     if (!success) {
       setIsLoading(false);
     }
@@ -74,6 +77,30 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                   <FormControl>
                     <Input placeholder="e.g., The Renaissance" {...field} className="rounded-xl h-12 bg-secondary/50 border-border" />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="category"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="font-semibold">Category</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <FormControl>
+                      <SelectTrigger className="rounded-xl h-12 bg-secondary/50 border-border">
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {quizCategories.map((level) => (
+                        <SelectItem key={level} value={level} className="capitalize">
+                          {level}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

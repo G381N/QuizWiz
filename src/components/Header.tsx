@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, User } from 'lucide-react';
+import { LogOut, Star } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,9 +14,27 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import * as React from 'react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
 
 export default function Header() {
   const { user, signOut: logOut } = useAuth();
+  const [totalScore, setTotalScore] = React.useState(0);
+
+  React.useEffect(() => {
+    const fetchUserScore = async () => {
+        if (user) {
+            const userDocRef = doc(db, 'users', user.uid);
+            const userDoc = await getDoc(userDocRef);
+            if(userDoc.exists()) {
+                setTotalScore(userDoc.data().totalScore || 0);
+            }
+        }
+    }
+    fetchUserScore();
+    // Re-fetch on user change
+  }, [user]);
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
@@ -55,6 +73,11 @@ export default function Header() {
                         <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
                       </div>
                     </DropdownMenuLabel>
+                     <DropdownMenuSeparator />
+                     <div className="px-2 py-1.5 text-sm flex items-center">
+                        <Star className="mr-2 h-4 w-4 text-primary" />
+                        <span className="font-semibold">{totalScore.toLocaleString()} PTS</span>
+                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => logOut()}>
                       <LogOut className="mr-2 h-4 w-4" />

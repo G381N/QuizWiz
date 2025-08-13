@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Trophy, Loader2 } from 'lucide-react';
+import { Crown, Trophy, Loader2, Star } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
@@ -23,7 +23,7 @@ export default function LeaderboardPage() {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        const q = query(collection(db, 'users'), orderBy('quizzesSolved', 'desc'), limit(10));
+        const q = query(collection(db, 'users'), orderBy('totalScore', 'desc'), limit(10));
         const querySnapshot = await getDocs(q);
         const leaderboardData: OverallLeaderboardEntry[] = [];
         let rank = 1;
@@ -34,6 +34,7 @@ export default function LeaderboardPage() {
             name: data.displayName,
             quizzesSolved: data.quizzesSolved || 0,
             avatar: data.photoURL,
+            totalScore: data.totalScore || 0,
           });
         });
         setLeaderboard(leaderboardData);
@@ -67,7 +68,8 @@ export default function LeaderboardPage() {
              <TableRow className="border-b-border/50">
                 <TableHead className="w-24 text-center">Rank</TableHead>
                 <TableHead>Player</TableHead>
-                <TableHead className="text-right">Quizzes Solved</TableHead>
+                <TableHead className="text-center">Quizzes Solved</TableHead>
+                <TableHead className="text-right">Total Score</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -84,13 +86,19 @@ export default function LeaderboardPage() {
                     <p className="text-base font-semibold">{player.name}</p>
                   </div>
                 </TableCell>
+                <TableCell className="text-center text-base text-muted-foreground">
+                    {player.quizzesSolved}
+                </TableCell>
                 <TableCell className="text-right text-base text-primary font-bold">
-                  {player.quizzesSolved}
+                  <div className="flex items-center justify-end gap-2">
+                    <Star className="w-4 h-4" />
+                    <span>{player.totalScore.toLocaleString()} PTS</span>
+                  </div>
                 </TableCell>
               </TableRow>
             )) : (
               <TableRow>
-                <TableCell colSpan={3} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
                   The leaderboard is empty. Be the first to solve a quiz!
                 </TableCell>
               </TableRow>
@@ -101,5 +109,3 @@ export default function LeaderboardPage() {
     </div>
   );
 }
-
-    

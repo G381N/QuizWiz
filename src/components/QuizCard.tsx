@@ -12,7 +12,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { type Quiz } from '@/types';
 import { cn } from '@/lib/utils';
-import { ArrowRight, Trophy } from 'lucide-react';
+import { Button } from './ui/button';
 
 interface QuizCardProps {
   quiz: Quiz;
@@ -27,35 +27,69 @@ const difficultyColors = {
   expert: 'bg-red-500/10 text-red-400 border-red-500/20',
 } as const;
 
+const TrophyIcon = ({color, className}: {color: string, className?: string}) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke={color}
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={cn("w-4 h-4", className)}>
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </svg>
+)
+
+const medalColors = {
+    1: '#FFD700', // Gold
+    2: '#C0C0C0', // Silver
+    3: '#CD7F32'  // Bronze
+};
+
 
 export function QuizCard({ quiz }: QuizCardProps) {
-  const topPlayer = quiz.leaderboard?.[0];
+  const topPlayers = quiz.leaderboard?.slice(0, 3) || [];
 
   return (
-    <Link href={`/quiz/${quiz.id}`} className="group">
-      <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl">
-        <CardHeader>
-          <CardTitle className="font-bold text-lg">{quiz.topic}</CardTitle>
-           <Badge variant="outline" className={cn("capitalize border text-xs w-fit", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
-            {quiz.difficulty}
-          </Badge>
-        </CardHeader>
-        <CardContent className="flex-grow space-y-2">
-            <div className="text-sm text-muted-foreground flex items-center gap-2">
-                <Trophy className="w-4 h-4 text-yellow-400" />
-                <span>
-                    {topPlayer ? `${topPlayer.name} - ${topPlayer.score} PTS` : 'No scores yet'}
-                </span>
+    <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
+      <CardHeader>
+        <div className="flex justify-between items-start">
+            <CardTitle className="font-bold text-lg pr-2">{quiz.topic}</CardTitle>
+            <Badge variant="outline" className={cn("capitalize border text-xs w-fit shrink-0", difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner)}>
+                {quiz.difficulty}
+            </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground pt-1">{quiz.description || 'A fun quiz on this interesting topic!'}</p>
+      </CardHeader>
+      <CardContent className="flex-grow space-y-3">
+          <p className="text-xs font-semibold text-muted-foreground uppercase">Leaderboard</p>
+          {topPlayers.length > 0 ? (
+            <div className="space-y-2">
+                {topPlayers.map((player) => (
+                    <div key={player.rank} className="flex items-center gap-3">
+                        <TrophyIcon color={medalColors[player.rank as keyof typeof medalColors]} />
+                        <span className="text-sm font-medium">{player.name.split(' ')[0]}</span>
+                        <span className="text-sm text-primary font-bold ml-auto">{player.score.toLocaleString()} PTS</span>
+                    </div>
+                ))}
             </div>
-        </CardContent>
-        <CardFooter>
-          <p className="text-sm text-primary flex items-center font-semibold">
-            Start Quiz <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1" />
-          </p>
-        </CardFooter>
-      </Card>
-    </Link>
+          ) : (
+             <div className="text-sm text-muted-foreground/70 text-center py-4">
+                Be the first to set a score!
+             </div>
+          )}
+      </CardContent>
+      <CardFooter>
+        <Button asChild className="w-full">
+          <Link href={`/quiz/${quiz.id}`}>Start Quiz</Link>
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
-
-    

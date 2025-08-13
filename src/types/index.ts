@@ -1,4 +1,6 @@
 
+import type { Timestamp } from "firebase/firestore";
+
 export type Question = {
   question: string;
   options: string[];
@@ -17,8 +19,11 @@ export type Quiz = {
   userId: string;
   topic: string;
   difficulty: string;
+  category: string;
+  description: string;
   questions: Question[];
   leaderboard: QuizLeaderboardEntry[];
+  createdAt: Timestamp | { seconds: number };
 };
 
 export type OverallLeaderboardEntry = {
@@ -26,6 +31,7 @@ export type OverallLeaderboardEntry = {
     name: string;
     quizzesSolved: number;
     avatar: string;
+    totalScore: number;
 }
 
 export type UserProfile = {
@@ -34,5 +40,3 @@ export type UserProfile = {
     quizzesSolved: number;
     totalScore: number;
 }
-
-    
