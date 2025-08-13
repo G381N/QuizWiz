@@ -10,21 +10,7 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-
-export const quizCategories = [
-    'Technology',
-    'Science',
-    'History',
-    'Geography',
-    'Art',
-    'Music',
-    'Movies',
-    'Literature',
-    'General Knowledge',
-    'Food & Drink',
-    'Sports',
-    'Mythology',
-];
+import { quizCategories } from '@/types';
 
 const GenerateQuizInputSchema = z.object({
   topic: z.string().describe('The topic of the quiz.'),

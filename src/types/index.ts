@@ -1,6 +1,21 @@
 
 import type { Timestamp } from "firebase/firestore";
 
+export const quizCategories = [
+    'Technology',
+    'Science',
+    'History',
+    'Geography',
+    'Art',
+    'Music',
+    'Movies',
+    'Literature',
+    'General Knowledge',
+    'Food & Drink',
+    'Sports',
+    'Mythology',
+];
+
 export type Question = {
   question: string;
   options: string[];

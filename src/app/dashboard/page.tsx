@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Loader2, Search, Filter, ArrowDownUp } from 'lucide-react';
 import { QuizCard } from '@/components/QuizCard';
 import { type Quiz } from '@/types';
-import { generateQuiz, type GenerateQuizOutput, quizCategories } from '@/ai/flows/generate-quiz';
+import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import {
@@ -31,6 +31,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
+import { quizCategories } from '@/types';
 
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);

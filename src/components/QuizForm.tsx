@@ -24,7 +24,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { quizCategories } from '@/ai/flows/generate-quiz';
+import { quizCategories } from '@/types';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
