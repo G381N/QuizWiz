@@ -12,7 +12,7 @@ const inter = Inter({
 
 
 export const metadata: Metadata = {
-  title: 'QuizWiz Kids',
+  title: 'QuizWiz',
   description: 'Generate fun quizzes with AI!',
 };
 

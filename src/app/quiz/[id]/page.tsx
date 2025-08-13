@@ -26,6 +26,8 @@ const DEFAULT_TIME_PER_QUESTION = 15; // seconds
 const ATTACKED_TIME_PER_QUESTION = 5;
 const POINTS_PER_SECOND = 10;
 const STREAK_BONUS = 50;
+const TIME_DANGER_THRESHOLD = 5;
+
 const DIFFICULTY_MULTIPLIER: { [key: string]: number } = {
     'dumb-dumb': 0.2,
     'novice': 0.4,
@@ -131,7 +133,7 @@ export default function QuizPage() {
   React.useEffect(() => {
     if (quiz) {
       const currentQuestion = quiz.questions[currentQuestionIndex];
-      setShuffledOptions(currentQuestion.options);
+      setShuffledOptions(currentQuestion.options.sort(() => Math.random() - 0.5));
     }
   }, [quiz, currentQuestionIndex]);
 
@@ -264,7 +266,7 @@ export default function QuizPage() {
         const randomIncorrect = incorrectOptions.sort(() => 0.5 - Math.random()).slice(0, 1);
         
         const optionsToKeep = [correctAnswer, randomIncorrect[0]];
-        setShuffledOptions(currentQuestion.options.filter(opt => optionsToKeep.includes(opt)));
+        setShuffledOptions(currentQuestion.options.filter(opt => optionsToKeep.includes(opt)).sort(() => Math.random() - 0.5));
         
         toast({ title: "50/50 Used!", description: "Two incorrect options have been removed." });
 
@@ -350,9 +352,11 @@ export default function QuizPage() {
     
     return 'bg-secondary opacity-50';
   };
+  
+  const isTimeDanger = !isAnswered && (timeLeft <= TIME_DANGER_THRESHOLD || (activeAttack && timeLeft <= 2));
 
   return (
-    <div className="max-w-3xl mx-auto space-y-6 animate-in fade-in-50 duration-500">
+    <div className={cn("max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 p-4 md:p-0 transition-all", isTimeDanger && 'pulse-danger rounded-2xl')}>
        <div className="flex items-center justify-between gap-4">
             <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsExitDialogVisible(true)}>
                 <ArrowLeft className="w-5 h-5" />
@@ -367,24 +371,23 @@ export default function QuizPage() {
             </div>
         </div>
         
-        <div className="relative h-2 w-full bg-secondary rounded-full">
-            <div className="absolute top-0 left-0 h-2 bg-primary rounded-full" style={{width: `${progress}%`, transition: 'width 0.5s ease-in-out'}}></div>
-        </div>
-        <Card className="shadow-2xl border-none rounded-2xl bg-transparent">
-            <CardContent className="pt-6">
+        <Progress value={progress} />
+        
+        <Card className="shadow-2xl border-none rounded-2xl bg-secondary/30">
+            <CardContent className="p-4 sm:p-8">
                 <div className="space-y-8">
                     <div className="flex justify-between items-center">
                         <div className="flex items-center gap-2">
                             {streak > 1 && <div className="flex items-center gap-1 text-orange-400 font-bold animate-in fade-in-0 zoom-in-50"><Zap className="w-4 h-4"/> x{streak}</div>}
                             {activeAttack && <div className="flex items-center gap-1 text-red-500 font-bold animate-in fade-in-0"><ShieldAlert className="w-4 h-4"/> Attacked!</div>}
                         </div>
-                         <div className={cn("flex items-center justify-end gap-2 text-lg font-bold", activeAttack ? "text-red-500 animate-pulse" : "text-primary")}>
-                            <Clock className="h-6 w-6" />
+                         <div className={cn("flex items-center justify-end gap-2 text-2xl font-bold transition-colors", isTimeDanger ? "text-red-500" : "text-primary")}>
+                            <Clock className="h-7 w-7" />
                             <span>{timeLeft}s</span>
                         </div>
                     </div>
 
-                    <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight">
+                    <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight min-h-[100px] flex items-center justify-center">
                     {currentQuestion.question}
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
