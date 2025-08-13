@@ -81,14 +81,10 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
-      
-      <Card className="bg-secondary/30">
-        <CardHeader>
-            <CardTitle>Leaderboard</CardTitle>
-        </CardHeader>
-        <Separator/>
-        <UserStatsCard userRank={currentUserRank} />
-      </Card>
+        <div className="space-y-4">
+            <h1 className="text-3xl font-bold tracking-tight">Leaderboard</h1>
+            <UserStatsCard userRank={currentUserRank} />
+        </div>
       
       <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
           <PodiumCard player={secondPlace} rank={2} />
@@ -206,36 +202,40 @@ const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry | undefined
 const UserStatsCard = ({ userRank }: { userRank: OverallLeaderboardEntry | null }) => {
     if (!userRank) {
         return (
-            <CardContent className="p-4 flex items-center justify-center">
-                <p className="text-muted-foreground">Play a quiz to get ranked!</p>
-            </CardContent>
+            <Card className="bg-secondary/30">
+                <CardContent className="p-4 flex items-center justify-center">
+                    <p className="text-muted-foreground">Play a quiz to get ranked!</p>
+                </CardContent>
+            </Card>
         );
     }
     return (
-        <div className="flex flex-col md:flex-row md:items-center justify-between p-4 gap-4">
-            <div className="flex items-center gap-4">
-                 <Image src={userRank.avatar} alt={userRank.name} width={48} height={48} className="rounded-full border-2 border-primary" />
-                 <div>
-                    <p className="text-lg font-bold">{userRank.name}</p>
-                    <p className="text-sm text-muted-foreground">Your Current Standing</p>
-                 </div>
+        <Card className="bg-secondary/30">
+            <div className="flex flex-col md:flex-row md:items-center justify-between p-4 gap-4">
+                <div className="flex items-center gap-4">
+                    <Image src={userRank.avatar} alt={userRank.name} width={48} height={48} className="rounded-full border-2 border-primary" />
+                    <div>
+                        <p className="text-lg font-bold">{userRank.name}</p>
+                        <p className="text-sm text-muted-foreground">Your Current Standing</p>
+                    </div>
+                </div>
+            
+                <div className="grid grid-cols-3 divide-x divide-border bg-background/30 rounded-lg p-2">
+                    <div className="flex flex-col items-center px-4">
+                        <p className="text-xs text-muted-foreground">Rank</p>
+                        <p className="text-xl font-bold text-primary">#{userRank.rank}</p>
+                    </div>
+                    <div className="flex flex-col items-center px-4">
+                        <p className="text-xs text-muted-foreground">Score</p>
+                        <p className="text-xl font-bold">{userRank.totalScore.toLocaleString()}</p>
+                    </div>
+                    <div className="flex flex-col items-center px-4">
+                        <p className="text-xs text-muted-foreground">Quizzes</p>
+                        <p className="text-xl font-bold">{userRank.quizzesSolved}</p>
+                    </div>
+                </div>
             </div>
-          
-          <div className="grid grid-cols-3 divide-x divide-border bg-background/30 rounded-lg p-2">
-              <div className="flex flex-col items-center px-4">
-                  <p className="text-xs text-muted-foreground">Rank</p>
-                  <p className="text-xl font-bold text-primary">#{userRank.rank}</p>
-              </div>
-              <div className="flex flex-col items-center px-4">
-                  <p className="text-xs text-muted-foreground">Score</p>
-                  <p className="text-xl font-bold">{userRank.totalScore.toLocaleString()}</p>
-              </div>
-               <div className="flex flex-col items-center px-4">
-                  <p className="text-xs text-muted-foreground">Quizzes</p>
-                  <p className="text-xl font-bold">{userRank.quizzesSolved}</p>
-              </div>
-          </div>
-        </div>
+        </Card>
     )
 }
 
