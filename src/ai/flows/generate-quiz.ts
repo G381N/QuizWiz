@@ -66,6 +66,26 @@ The quiz should be returned as a JSON object that matches the provided schema.
 
 Here's the schema of the object:
 \n{{outputSchema}}\n`,
+  config: {
+    safetySettings: [
+        {
+            category: 'HARM_CATEGORY_HATE_SPEECH',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+        {
+            category: 'HARM_CATEGORY_DANGEROUS_CONTENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+        {
+            category: 'HARM_CATEGORY_HARASSMENT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+        {
+            category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT',
+            threshold: 'BLOCK_MEDIUM_AND_ABOVE',
+        },
+    ],
+  },
 });
 
 const generateQuizFlow = ai.defineFlow(
