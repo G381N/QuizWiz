@@ -107,13 +107,13 @@ export default function Header() {
                 <span className="text-xl font-bold tracking-tight">QuizWiz</span>
             </Link>
             <div className="hidden md:flex items-center gap-2">
-               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bg-primary after:bottom-1.5 after:left-0 after:h-px after:w-full after:origin-bottom-right after:scale-x-0 hover:after:origin-bottom-left hover:after:scale-x-100 after:transition-transform after:ease-in-out after:duration-300">
+               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                   <Link href="/dashboard">Home</Link>
                </Button>
-               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bg-primary after:bottom-1.5 after:left-0 after:h-px after:w-full after:origin-bottom-right after:scale-x-0 hover:after:origin-bottom-left hover:after:scale-x-100 after:transition-transform after:ease-in-out after:duration-300">
+               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                    <Link href="/leaderboard">Leaderboard</Link>
                </Button>
-                <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors relative after:absolute after:bg-primary after:bottom-1.5 after:left-0 after:h-px after:w-full after:origin-bottom-right after:scale-x-0 hover:after:origin-bottom-left hover:after:scale-x-100 after:transition-transform after:ease-in-out after:duration-300">
+                <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
                    <Link href="/store">Store</Link>
                 </Button>
             </div>
