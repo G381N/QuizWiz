@@ -25,6 +25,14 @@ import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/fir
 
 const TIME_PER_QUESTION = 15; // seconds
 const POINTS_PER_SECOND = 10;
+const DIFFICULTY_MULTIPLIER = {
+    'dumb-dumb': 0.5,
+    'novice': 0.8,
+    'beginner': 1,
+    'intermediate': 1.2,
+    'advanced': 1.5,
+    'expert': 2,
+};
 
 export default function QuizPage() {
   const params = useParams();
@@ -50,7 +58,11 @@ export default function QuizPage() {
         const docRef = doc(db, 'quizzes', quizId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
-          setQuiz({ id: docSnap.id, ...docSnap.data() } as Quiz);
+          const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
+          if (!quizData.leaderboard) {
+            quizData.leaderboard = [];
+          }
+          setQuiz(quizData);
         } else {
           router.push('/dashboard');
         }
@@ -63,7 +75,7 @@ export default function QuizPage() {
   }, [quizId, router]);
 
   React.useEffect(() => {
-    if (isAnswered || view === 'leaderboard') return;
+    if (isAnswered || view === 'leaderboard' || !quiz) return;
     
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -77,23 +89,9 @@ export default function QuizPage() {
     }, 1000);
 
     return () => clearInterval(timerRef.current!);
-  }, [currentQuestionIndex, isAnswered, view]);
+  }, [currentQuestionIndex, isAnswered, view, quiz]);
 
-  const handleAnswer = (answer: string | null) => {
-    if (isAnswered) return;
-
-    clearInterval(timerRef.current!);
-    setIsAnswered(true);
-    setSelectedAnswer(answer);
-
-    const currentQuestion = quiz?.questions[currentQuestionIndex];
-    let points = 0;
-    if (answer && currentQuestion && answer === currentQuestion.answer) {
-      points = timeLeft * POINTS_PER_SECOND;
-      setScore((prev) => prev + points);
-    }
-    
-    setTimeout(() => {
+  const handleNextStep = async (points: number) => {
       if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
         setCurrentQuestionIndex((prev) => prev + 1);
         setIsAnswered(false);
@@ -103,51 +101,79 @@ export default function QuizPage() {
         const finalScore = score + points;
         
         if (user) {
-          updateLeaderboards(finalScore);
+          await updateLeaderboards(finalScore);
         }
         
         localStorage.setItem(`quiz_score_${quizId}`, finalScore.toString());
         router.push(`/quiz/${quizId}/results`);
       }
-    }, 2000);
+  }
+
+  const handleAnswer = (answer: string | null) => {
+    if (isAnswered || !quiz) return;
+
+    clearInterval(timerRef.current!);
+    setIsAnswered(true);
+    setSelectedAnswer(answer);
+
+    const currentQuestion = quiz.questions[currentQuestionIndex];
+    let points = 0;
+    if (answer && currentQuestion && answer === currentQuestion.answer) {
+      const difficulty: keyof typeof DIFFICULTY_MULTIPLIER = quiz.difficulty as any;
+      const multiplier = DIFFICULTY_MULTIPLIER[difficulty] || 1;
+      points = Math.round(timeLeft * POINTS_PER_SECOND * multiplier);
+      setScore((prev) => prev + points);
+    }
+    
+    setTimeout(() => handleNextStep(points), 2000);
   };
   
   const updateLeaderboards = async (finalScore: number) => {
-    if (!user) return;
+    if (!user || !quiz) return;
 
     try {
-      // Update quiz-specific leaderboard
-      const quizDocRef = doc(db, 'quizzes', quizId);
-      const newEntry: Omit<QuizLeaderboardEntry, 'rank'> = { 
-        name: user.displayName || 'Anonymous', 
-        score: finalScore, 
-        avatar: user.photoURL || '/avatars/1.svg' 
-      };
+      await runTransaction(db, async (transaction) => {
+        const quizDocRef = doc(db, 'quizzes', quizId);
+        const userDocRef = doc(db, "users", user.uid);
+        
+        const quizDoc = await transaction.get(quizDocRef);
+        const userDoc = await transaction.get(userDocRef);
 
-      const quizDocSnap = await getDoc(quizDocRef);
-      if (quizDocSnap.exists()) {
-        const currentLeaderboard = quizDocSnap.data().leaderboard || [];
+        if (!quizDoc.exists()) {
+          throw "Quiz does not exist!";
+        }
+
+        // Update quiz-specific leaderboard
+        const newEntry: Omit<QuizLeaderboardEntry, 'rank'> = { 
+          name: user.displayName || 'Anonymous', 
+          score: finalScore, 
+          avatar: user.photoURL || '/default-avatar.png'
+        };
+
+        const currentLeaderboard = quizDoc.data().leaderboard || [];
         const updatedLeaderboard = [...currentLeaderboard, newEntry]
           .sort((a,b) => b.score - a.score)
+          .slice(0, 10) // Keep top 10
           .map((entry, index) => ({ ...entry, rank: index + 1 }));
-        await updateDoc(quizDocRef, { leaderboard: updatedLeaderboard });
-      }
+        
+        transaction.update(quizDocRef, { leaderboard: updatedLeaderboard });
 
-
-      // Update user's overall stats
-      const userDocRef = doc(db, "users", user.uid);
-      await runTransaction(db, async (transaction) => {
-          const userDoc = await transaction.get(userDocRef);
-          if (!userDoc.exists()) {
-              transaction.set(userDocRef, { 
-                  displayName: user.displayName,
-                  photoURL: user.photoURL,
-                  quizzesSolved: 1 
-              });
-          } else {
-              const newQuizzesSolved = (userDoc.data().quizzesSolved || 0) + 1;
-              transaction.update(userDocRef, { quizzesSolved: newQuizzesSolved });
-          }
+        // Update user's overall stats
+        if (!userDoc.exists()) {
+            transaction.set(userDocRef, { 
+                displayName: user.displayName,
+                photoURL: user.photoURL,
+                quizzesSolved: 1,
+                totalScore: finalScore
+            });
+        } else {
+            const newQuizzesSolved = (userDoc.data().quizzesSolved || 0) + 1;
+            const newTotalScore = (userDoc.data().totalScore || 0) + finalScore;
+            transaction.update(userDocRef, { 
+                quizzesSolved: newQuizzesSolved,
+                totalScore: newTotalScore,
+             });
+        }
       });
     } catch (error) {
         console.error("Error updating leaderboards:", error);
@@ -297,3 +323,5 @@ export default function QuizPage() {
     </div>
   );
 }
+
+    

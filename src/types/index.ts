@@ -27,3 +27,12 @@ export type OverallLeaderboardEntry = {
     quizzesSolved: number;
     avatar: string;
 }
+
+export type UserProfile = {
+    displayName: string;
+    photoURL: string;
+    quizzesSolved: number;
+    totalScore: number;
+}
+
+    

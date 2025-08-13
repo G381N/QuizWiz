@@ -35,13 +35,13 @@ export default function DashboardPage() {
       if (!user) return;
       setLoading(true);
       try {
-        const q = query(collection(db, 'quizzes'), where('userId', '==', user.uid));
+        const q = query(collection(db, 'quizzes'));
         const querySnapshot = await getDocs(q);
-        const userQuizzes: Quiz[] = [];
+        const allQuizzes: Quiz[] = [];
         querySnapshot.forEach((doc) => {
-          userQuizzes.push({ id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) });
+          allQuizzes.push({ id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) });
         });
-        setQuizzes(userQuizzes);
+        setQuizzes(allQuizzes);
       } catch (error) {
         console.error("Failed to fetch quizzes from Firestore", error);
         toast({
@@ -53,7 +53,9 @@ export default function DashboardPage() {
       setLoading(false);
     };
 
-    fetchQuizzes();
+    if(user) {
+        fetchQuizzes();
+    }
   }, [user, toast]);
 
   const handleCreateQuiz = async (topic: string, difficulty: string) => {
@@ -77,6 +79,7 @@ export default function DashboardPage() {
         setQuizzes([newQuiz, ...quizzes]);
         setIsQuizFormOpen(false);
         router.push(`/quiz/${newQuiz.id}`);
+        return true;
       } else {
         throw new Error('Failed to generate quiz, please try again.');
       }
@@ -89,7 +92,6 @@ export default function DashboardPage() {
       });
       return false;
     }
-    return true;
   };
 
   if (loading) {
@@ -103,7 +105,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold tracking-tight">Your Quizzes</h1>
+        <h1 className="text-3xl font-bold tracking-tight">Quizzes</h1>
          <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -174,3 +176,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    

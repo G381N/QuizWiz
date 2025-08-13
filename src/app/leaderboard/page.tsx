@@ -32,7 +32,7 @@ export default function LeaderboardPage() {
           leaderboardData.push({
             rank: rank++,
             name: data.displayName,
-            quizzesSolved: data.quizzesSolved,
+            quizzesSolved: data.quizzesSolved || 0,
             avatar: data.photoURL,
           });
         });
@@ -80,7 +80,7 @@ export default function LeaderboardPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-4">
-                    <Image src={player.avatar} alt={player.name} width={40} height={40} className="rounded-full"/>
+                    <Image src={player.avatar || '/default-avatar.png'} alt={player.name} width={40} height={40} className="rounded-full"/>
                     <p className="text-base font-semibold">{player.name}</p>
                   </div>
                 </TableCell>
@@ -101,3 +101,5 @@ export default function LeaderboardPage() {
     </div>
   );
 }
+
+    

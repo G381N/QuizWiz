@@ -1,6 +1,7 @@
+
 'use client';
 
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter, useParams, useSearchParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Home, RotateCw } from 'lucide-react';
@@ -11,20 +12,23 @@ export default function ResultsPage() {
   const params = useParams();
   const quizId = params.id as string;
   const [finalScore, setFinalScore] = React.useState(0);
+  const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     const score = localStorage.getItem(`quiz_score_${quizId}`);
     if (score) {
       setFinalScore(parseInt(score, 10));
     }
+    setLoading(false);
   }, [quizId]);
-
-  const bonus = Math.floor(finalScore * 0.1);
-  const totalScore = finalScore + bonus;
 
   const handlePlayAgain = () => {
     localStorage.removeItem(`quiz_score_${quizId}`);
     router.push(`/quiz/${quizId}`);
+  }
+  
+  if (loading) {
+    return null;
   }
 
   return (
@@ -46,25 +50,15 @@ export default function ResultsPage() {
           <CardTitle className="text-2xl font-bold mt-4">Quiz Complete!</CardTitle>
         </CardHeader>
         <CardContent className="space-y-6 my-8">
-            <p className="text-5xl font-extrabold text-primary tracking-tighter">{totalScore.toLocaleString()}</p>
+            <p className="text-5xl font-extrabold text-primary tracking-tighter">{finalScore.toLocaleString()}</p>
             <p className="text-muted-foreground -mt-2">Total Score</p>
-            <div className="bg-background/50 rounded-xl p-4 space-y-3 text-left">
-                <div className="flex justify-between items-center text-lg">
-                    <span className="text-muted-foreground">Base Score</span>
-                    <span className="font-bold">{finalScore.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between items-center text-lg">
-                    <span className="text-muted-foreground">Time Bonus</span>
-                    <span className="font-bold text-green-400">+{bonus.toLocaleString()}</span>
-                </div>
-            </div>
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <Button size="lg" className="w-full" onClick={handlePlayAgain}>
             <RotateCw className="mr-2 h-4 w-4" />
             Play Again
           </Button>
-          <Button variant="ghost" className="w-full" onClick={() => router.push('/')}>
+          <Button variant="ghost" className="w-full" onClick={() => router.push('/dashboard')}>
             <Home className="mr-2 h-4 w-4" />
             Back to Home
           </Button>
@@ -73,3 +67,5 @@ export default function ResultsPage() {
     </div>
   );
 }
+
+    
