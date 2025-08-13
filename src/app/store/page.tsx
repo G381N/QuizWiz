@@ -19,6 +19,10 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import Image from 'next/image';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { cn } from '@/lib/utils';
 
 
 const availablePerks: Perk[] = [
@@ -189,7 +193,43 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
     const [isDialogOpen, setIsDialogOpen] = React.useState(false);
     const [targetUsername, setTargetUsername] = React.useState('');
     const [isAttacking, setIsAttacking] = React.useState(false);
+    const [allUsers, setAllUsers] = React.useState<UserProfile[]>([]);
+    const [filteredUsers, setFilteredUsers] = React.useState<UserProfile[]>([]);
+    const [isUsersLoading, setIsUsersLoading] = React.useState(false);
+
     const perkCount = userData?.perks?.[perk.id] || 0;
+    
+    const handleOpenDialog = async (isOpen: boolean) => {
+        setIsDialogOpen(isOpen);
+        if(isOpen && allUsers.length === 0) {
+            setIsUsersLoading(true);
+            try {
+                const usersSnapshot = await getDocs(collection(db, 'users'));
+                const usersList = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+                setAllUsers(usersList);
+            } catch (error) {
+                console.error('Failed to fetch users', error);
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not load user list.' });
+            } finally {
+                setIsUsersLoading(false);
+            }
+        }
+    }
+
+    const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const term = e.target.value;
+        setTargetUsername(term);
+        if (term) {
+            setFilteredUsers(allUsers.filter(u => u.displayName.toLowerCase().includes(term.toLowerCase())));
+        } else {
+            setFilteredUsers([]);
+        }
+    }
+    
+    const handleSelectUser = (username: string) => {
+        setTargetUsername(username);
+        setFilteredUsers([]);
+    }
 
     const handleUsePerk = async () => {
         if (!user || !targetUsername) {
@@ -259,7 +299,7 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
                  <p className="text-sm text-muted-foreground">You own: <span className="font-bold text-foreground">{perkCount}</span></p>
             </CardContent>
             <CardFooter className="flex flex-col gap-2">
-                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <Dialog open={isDialogOpen} onOpenChange={handleOpenDialog}>
                     <DialogTrigger asChild>
                          <Button className="w-full" variant="destructive" disabled={perkCount <= 0}>
                             <ShieldAlert className="mr-2 h-4 w-4"/>
@@ -273,16 +313,38 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
                                 Enter the display name of the player you want to attack. This will reduce their next quiz's question time to 5 seconds.
                             </DialogDescription>
                         </DialogHeader>
-                        <div className="space-y-4">
-                            <div className="relative">
-                                 <Input 
-                                    placeholder="Enter username..." 
-                                    value={targetUsername}
-                                    onChange={(e) => setTargetUsername(e.target.value)}
-                                    className="pl-10"
-                                />
-                                <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                            </div>
+                        <div className="space-y-2">
+                             <Popover open={filteredUsers.length > 0 && targetUsername.length > 0} onOpenChange={() => {}}>
+                                <PopoverTrigger asChild>
+                                    <div className="relative">
+                                        <Input 
+                                            placeholder="Enter username..." 
+                                            value={targetUsername}
+                                            onChange={handleSearch}
+                                            className="pl-10"
+                                        />
+                                        <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0">
+                                     {isUsersLoading ? (
+                                        <div className="p-4 text-center text-sm">Loading users...</div>
+                                     ) : (
+                                        <ScrollArea className="h-fit max-h-48">
+                                            {filteredUsers.map(u => (
+                                                <div 
+                                                    key={u.uid}
+                                                    className="flex items-center gap-3 p-2 hover:bg-accent cursor-pointer"
+                                                    onClick={() => handleSelectUser(u.displayName)}
+                                                >
+                                                     <Image src={u.photoURL || '/default-avatar.png'} alt={u.displayName} width={24} height={24} className="rounded-full"/>
+                                                     <span>{u.displayName}</span>
+                                                </div>
+                                            ))}
+                                        </ScrollArea>
+                                     )}
+                                </PopoverContent>
+                            </Popover>
                             <Button className="w-full" onClick={handleUsePerk} disabled={isAttacking || !targetUsername}>
                                 {isAttacking ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Launch Attack"}
                             </Button>
@@ -308,3 +370,5 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
         </Card>
     );
 };
+
+    
