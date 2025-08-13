@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Loader2, Star, Search, User as UserIcon, Trophy, Award, Album } from 'lucide-react';
+import { Crown, Loader2, Star, Search, User as UserIcon, Trophy } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
@@ -16,7 +16,7 @@ import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useAuth } from '@/hooks/use-auth';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 import { Separator } from '@/components/ui/separator';
 
@@ -59,7 +59,7 @@ export default function LeaderboardPage() {
     return leaderboard.filter(player => player.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [leaderboard, searchTerm]);
   
-  const restOfPlayers = filteredLeaderboard.slice(0); // Show all players in the table
+  const restOfPlayers = filteredLeaderboard.slice(3);
 
   const currentUserRank = React.useMemo(() => {
     if (!user) return null;
@@ -81,10 +81,14 @@ export default function LeaderboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <h1 className="text-4xl font-extrabold tracking-tight">Leaderboard</h1>
+      
+      <Card className="bg-secondary/30">
+        <CardHeader>
+            <CardTitle>Leaderboard</CardTitle>
+        </CardHeader>
+        <Separator/>
         <UserStatsCard userRank={currentUserRank} />
-      </div>
+      </Card>
       
       <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
           <PodiumCard player={secondPlace} rank={2} />
@@ -92,12 +96,10 @@ export default function LeaderboardPage() {
           <PodiumCard player={thirdPlace} rank={3} />
       </div>
       
-      <Separator />
-
       <div className="relative">
           <Input 
               placeholder="Search for a player..." 
-              className="pl-10 h-12 text-base w-full" 
+              className="pl-10 h-11 text-base w-full bg-secondary/30" 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -115,7 +117,7 @@ export default function LeaderboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {restOfPlayers.length > 0 ? restOfPlayers.map((player) => (
+            {filteredLeaderboard.length > 0 ? filteredLeaderboard.map((player) => (
               <TableRow key={player.rank} className="font-medium border-b-0 hover:bg-white/5">
                 <TableCell className="text-center">
                     <div className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-lg font-bold bg-background/50">
@@ -204,38 +206,36 @@ const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry | undefined
 const UserStatsCard = ({ userRank }: { userRank: OverallLeaderboardEntry | null }) => {
     if (!userRank) {
         return (
-            <Card className="bg-secondary/30 md:max-w-xs w-full">
-                <CardContent className="p-4 flex items-center justify-center">
-                    <p className="text-muted-foreground">Play a quiz to get ranked!</p>
-                </CardContent>
-            </Card>
+            <CardContent className="p-4 flex items-center justify-center">
+                <p className="text-muted-foreground">Play a quiz to get ranked!</p>
+            </CardContent>
         );
     }
     return (
-        <Card className="bg-secondary/30 md:max-w-xs w-full">
-          <CardHeader className="p-4 flex flex-row items-center gap-4">
-             <Image src={userRank.avatar} alt={userRank.name} width={48} height={48} className="rounded-full border-2 border-primary" />
-             <div>
-                <CardContent className="p-0 text-base font-bold">{userRank.name}</CardContent>
-                <p className="text-sm text-muted-foreground">Your Stats</p>
-             </div>
-          </CardHeader>
-          <Separator />
-          <CardContent className="p-4 grid grid-cols-3 divide-x divide-border">
-              <div className="flex flex-col items-center">
+        <div className="flex flex-col md:flex-row md:items-center justify-between p-4 gap-4">
+            <div className="flex items-center gap-4">
+                 <Image src={userRank.avatar} alt={userRank.name} width={48} height={48} className="rounded-full border-2 border-primary" />
+                 <div>
+                    <p className="text-lg font-bold">{userRank.name}</p>
+                    <p className="text-sm text-muted-foreground">Your Current Standing</p>
+                 </div>
+            </div>
+          
+          <div className="grid grid-cols-3 divide-x divide-border bg-background/30 rounded-lg p-2">
+              <div className="flex flex-col items-center px-4">
                   <p className="text-xs text-muted-foreground">Rank</p>
                   <p className="text-xl font-bold text-primary">#{userRank.rank}</p>
               </div>
-              <div className="flex flex-col items-center">
+              <div className="flex flex-col items-center px-4">
                   <p className="text-xs text-muted-foreground">Score</p>
                   <p className="text-xl font-bold">{userRank.totalScore.toLocaleString()}</p>
               </div>
-               <div className="flex flex-col items-center">
+               <div className="flex flex-col items-center px-4">
                   <p className="text-xs text-muted-foreground">Quizzes</p>
                   <p className="text-xl font-bold">{userRank.quizzesSolved}</p>
               </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
     )
 }
 
