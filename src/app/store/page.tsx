@@ -4,7 +4,7 @@
 import * as React from 'react';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, runTransaction, increment, collection, query, where, getDocs, addDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, getDoc, runTransaction, increment, collection, query, where, getDocs, addDoc, serverTimestamp, writeBatch, updateDoc } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Loader2, Star, HelpCircle, Zap, ShieldAlert, SkipForward, User as UserIcon } from 'lucide-react';
@@ -23,6 +23,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import Image from 'next/image';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
+import { useRouter } from 'next/navigation';
 
 
 const availablePerks: Perk[] = [
@@ -151,10 +152,57 @@ interface PerkCardProps {
 }
 
 const PerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserData }: PerkCardProps) => {
+    const { user } = useAuth();
+    const router = useRouter();
+    const { toast } = useToast();
+    
     const perkCount = userData?.perks?.[perk.id] || 0;
 
     if (perk.id === 'time-attack') {
         return <TimeAttackPerkCard perk={perk} userData={userData} onPurchase={onPurchase} isPurchasing={isPurchasing} setUserData={setUserData}/>
+    }
+    
+    if (perk.id === 'score-booster') {
+         const handleActivateBooster = async () => {
+            if (!user || perkCount <= 0) return;
+            try {
+                const userDocRef = doc(db, 'users', user.uid);
+                await updateDoc(userDocRef, { 
+                    'perks.score-booster': increment(-1),
+                    'perks.score-booster-active': true 
+                });
+                setUserData(prev => prev ? ({ ...prev, perks: {...prev.perks, 'score-booster': perkCount - 1 }}) : null);
+                toast({ title: "Score Booster Ready!", description: "Your next quiz will have a 2x score multiplier."});
+                router.push('/dashboard');
+            } catch (e) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Could not activate booster.' });
+            }
+        }
+        return (
+             <Card className="flex flex-col bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl">
+                <CardHeader className="items-center text-center">
+                    <perk.icon className="w-12 h-12 text-primary mb-2" />
+                    <CardTitle>{perk.name}</CardTitle>
+                    <CardDescription className="text-balance">{perk.description}</CardDescription>
+                </CardHeader>
+                <CardContent className="flex-grow text-center">
+                    <p className="text-sm text-muted-foreground">You own: <span className="font-bold text-foreground">{perkCount}</span></p>
+                </CardContent>
+                <CardFooter className="flex flex-col gap-2">
+                     <Button className="w-full" variant="destructive" disabled={perkCount <= 0} onClick={handleActivateBooster}>
+                        <Zap className="mr-2 h-4 w-4"/>
+                        Activate Now
+                    </Button>
+                    <Button
+                        className="w-full"
+                        onClick={() => onPurchase(perk)}
+                        disabled={isPurchasing || (userData?.totalScore ?? 0) < perk.cost}
+                    >
+                        {isPurchasing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><Star className="mr-2 h-4 w-4" /> Buy for {perk.cost.toLocaleString()}</>}
+                    </Button>
+                </CardFooter>
+            </Card>
+        )
     }
 
     return (
@@ -205,7 +253,9 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
             setIsUsersLoading(true);
             try {
                 const usersSnapshot = await getDocs(collection(db, 'users'));
-                const usersList = usersSnapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile));
+                const usersList = usersSnapshot.docs
+                    .map(doc => ({ uid: doc.id, ...doc.data() } as UserProfile))
+                    .filter(u => u.uid !== user?.uid); // Exclude self
                 setAllUsers(usersList);
             } catch (error) {
                 console.error('Failed to fetch users', error);
@@ -371,4 +421,3 @@ const TimeAttackPerkCard = ({ perk, userData, onPurchase, isPurchasing, setUserD
     );
 };
 
-    

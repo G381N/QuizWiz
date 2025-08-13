@@ -21,6 +21,8 @@ import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, runTransaction, increment, collection, query, where, getDocs, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+
 
 const DEFAULT_TIME_PER_QUESTION = 15; // seconds
 const ATTACKED_TIME_PER_QUESTION = 5;
@@ -58,6 +60,7 @@ export default function QuizPage() {
   const [userPerks, setUserPerks] = React.useState<UserPerks>({});
   const [shuffledOptions, setShuffledOptions] = React.useState<string[]>([]);
   const [activeAttack, setActiveAttack] = React.useState<Attack | null>(null);
+  const [isScoreBoosterActive, setIsScoreBoosterActive] = React.useState(false);
 
 
   const timerRef = React.useRef<NodeJS.Timeout>();
@@ -104,7 +107,13 @@ export default function QuizPage() {
 
 
         if (userDocSnap.exists()) {
-            setUserPerks(userDocSnap.data().perks || {});
+            const userData = userDocSnap.data();
+            setUserPerks(userData.perks || {});
+             if (userData.perks?.['score-booster-active']) {
+                setIsScoreBoosterActive(true);
+                await updateDoc(userDocRef, { 'perks.score-booster-active': false }); // Consume it
+                toast({ title: 'Score Booster Active!', description: 'Your points for this quiz will be doubled!' });
+            }
         }
 
         const docRef = doc(db, 'quizzes', quizId);
@@ -186,6 +195,9 @@ export default function QuizPage() {
       setStreak(currentStreak);
       if (currentStreak > 1) {
           points += STREAK_BONUS * (currentStreak - 1);
+      }
+      if (isScoreBoosterActive) {
+          points *= 2;
       }
     } else {
         setStreak(0);
@@ -301,6 +313,29 @@ export default function QuizPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'Could not use perk.' });
     }
   }
+  
+  const useScoreBooster = async () => {
+    if (!user || isScoreBoosterActive) return;
+    if (!userPerks['score-booster'] || userPerks['score-booster'] <= 0) {
+        toast({ variant: 'destructive', title: "No Score Booster perks left!" });
+        return;
+    }
+
+    try {
+        const userDocRef = doc(db, 'users', user.uid);
+        await updateDoc(userDocRef, {
+            'perks.score-booster': increment(-1),
+            'perks.score-booster-active': true
+        });
+
+        setUserPerks(prev => ({...prev, 'score-booster': (prev['score-booster'] || 1) - 1}));
+        setIsScoreBoosterActive(true);
+        toast({ title: 'Score Booster Activated!', description: 'Your points for this quiz will be doubled!' });
+    } catch (error) {
+        console.error("Failed to use score booster perk", error);
+        toast({ variant: 'destructive', title: 'Error', description: 'Could not use perk.' });
+    }
+  }
 
 
   if (isLoading) {
@@ -317,9 +352,8 @@ export default function QuizPage() {
             <ShieldCheck className="w-24 h-24 text-primary mb-4" />
             <h1 className="text-3xl font-bold">Quiz Already Completed</h1>
             <p className="text-muted-foreground mt-2">You can only take each quiz once to keep the leaderboards fair.</p>
-            <Button onClick={() => router.push('/dashboard')} className="mt-6">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Dashboard
+            <Button onClick={() => router.push(`/quiz/${quizId}/results`)} className="mt-6">
+                View Results
             </Button>
         </div>
     )
@@ -356,93 +390,121 @@ export default function QuizPage() {
   const isTimeDanger = !isAnswered && (timeLeft <= TIME_DANGER_THRESHOLD || (activeAttack && timeLeft <= 2));
 
   return (
-    <div className={cn("max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 p-4 md:p-0 transition-all", isTimeDanger && 'pulse-danger rounded-2xl')}>
-       <div className="flex items-center justify-between gap-4">
-            <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsExitDialogVisible(true)}>
-                <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div className="flex-grow text-center">
-              <h1 className="text-2xl font-bold tracking-tight">{quiz.topic}</h1>
-              <p className="text-sm text-muted-foreground">{`Question ${currentQuestionIndex + 1} of ${quiz.questions.length}`}</p>
-            </div>
-            <div className="w-24 text-right flex items-center justify-end gap-2 text-lg font-bold text-muted-foreground">
-                <Star className="h-5 w-5 text-yellow-400"/>
-                {score}
-            </div>
-        </div>
-        
-        <Progress value={progress} />
-        
-        <Card className="shadow-2xl border-none rounded-2xl bg-secondary/30">
-            <CardContent className="p-4 sm:p-8">
-                <div className="space-y-8">
-                    <div className="flex justify-between items-center">
-                        <div className="flex items-center gap-2">
-                            {streak > 1 && <div className="flex items-center gap-1 text-orange-400 font-bold animate-in fade-in-0 zoom-in-50"><Zap className="w-4 h-4"/> x{streak}</div>}
-                            {activeAttack && <div className="flex items-center gap-1 text-red-500 font-bold animate-in fade-in-0"><ShieldAlert className="w-4 h-4"/> Attacked!</div>}
-                        </div>
-                         <div className={cn("flex items-center justify-end gap-2 text-2xl font-bold transition-colors", isTimeDanger ? "text-red-500" : "text-primary")}>
-                            <Clock className="h-7 w-7" />
-                            <span>{timeLeft}s</span>
-                        </div>
-                    </div>
-
-                    <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight min-h-[100px] flex items-center justify-center">
-                    {currentQuestion.question}
-                    </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {shuffledOptions.map((option, index) => (
-                        <Button
-                        key={option}
-                        onClick={() => handleAnswer(option)}
-                        disabled={isAnswered}
-                        className={cn("h-auto p-4 text-base rounded-xl whitespace-normal justify-start transition-all duration-300 font-semibold border-2", getButtonClass(option))}
-                        >
-                        <div className="flex items-center w-full">
-                            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black/10 flex items-center justify-center font-bold text-sm mr-3">{String.fromCharCode(65 + index)}</div>
-                            <span className="flex-grow text-left">{option}</span>
-                            {isAnswered && (
-                            <div className="ml-4">
-                                {option === currentQuestion.answer && <Check className="h-6 w-6 text-green-400" />}
-                                {option !== currentQuestion.answer && option === selectedAnswer && <X className="h-6 w-6 text-red-400" />}
-                            </div>
-                            )}
-                        </div>
-                        </Button>
-                    ))}
-                    </div>
+    <TooltipProvider>
+    <div className="flex justify-center items-start gap-8">
+        <div className={cn("w-full max-w-4xl mx-auto space-y-6 animate-in fade-in-50 duration-500 p-4 md:p-0 transition-all", isTimeDanger && 'pulse-danger rounded-2xl')}>
+           <div className="flex items-center justify-between gap-4">
+                <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsExitDialogVisible(true)}>
+                    <ArrowLeft className="w-5 h-5" />
+                </Button>
+                <div className="flex-grow text-center">
+                  <h1 className="text-2xl font-bold tracking-tight">{quiz.topic}</h1>
+                  <p className="text-sm text-muted-foreground">{`Question ${currentQuestionIndex + 1} of ${quiz.questions.length}`}</p>
                 </div>
-            </CardContent>
-        </Card>
-        <div className="flex justify-center gap-2">
-           {userPerks['fifty-fifty'] && userPerks['fifty-fifty'] > 0 ? (
-                <Button variant="outline" onClick={useFiftyFifty} disabled={isAnswered || shuffledOptions.length <= 2}>
-                    <HelpCircle className="mr-2 h-4 w-4" />
-                    Use 50/50 ({userPerks['fifty-fifty']} left)
-                </Button>
-            ) : null}
-             {userPerks['skip-question'] && userPerks['skip-question'] > 0 ? (
-                <Button variant="outline" onClick={useSkipQuestion} disabled={isAnswered}>
-                    <SkipForward className="mr-2 h-4 w-4" />
-                    Skip Question ({userPerks['skip-question']} left)
-                </Button>
-            ) : null}
-        </div>
+                <div className="w-24 text-right flex items-center justify-end gap-2 text-lg font-bold text-muted-foreground">
+                    <Star className="h-5 w-5 text-yellow-400"/>
+                    {score}
+                </div>
+            </div>
+            
+            <Progress value={progress} />
+            
+            <Card className="shadow-2xl border-none rounded-2xl bg-secondary/30">
+                <CardContent className="p-4 sm:p-8">
+                    <div className="space-y-8">
+                        <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-2">
+                                {streak > 1 && <div className="flex items-center gap-1 text-orange-400 font-bold animate-in fade-in-0 zoom-in-50"><Zap className="w-4 h-4"/> x{streak}</div>}
+                                {activeAttack && <div className="flex items-center gap-1 text-red-500 font-bold animate-in fade-in-0"><ShieldAlert className="w-4 h-4"/> Attacked!</div>}
+                                {isScoreBoosterActive && <div className="flex items-center gap-1 text-purple-400 font-bold animate-in fade-in-0"><Zap className="w-4 h-4"/> 2x Score!</div>}
+                            </div>
+                             <div className={cn("flex items-center justify-end gap-2 text-2xl font-bold transition-colors", isTimeDanger ? "text-red-500" : "text-primary")}>
+                                <Clock className="h-7 w-7" />
+                                <span>{timeLeft}s</span>
+                            </div>
+                        </div>
 
-      <AlertDialog open={isExitDialogVisible} onOpenChange={setIsExitDialogVisible}>
-        <AlertDialogContent className="bg-secondary">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure you want to quit?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your progress will be lost and you will not receive any points for this quiz.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-             <Button variant="outline" onClick={() => setIsExitDialogVisible(false)}>Cancel</Button>
-             <Button variant="destructive" onClick={() => router.push('/dashboard')}>Quit Quiz</Button>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+                        <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight min-h-[100px] flex items-center justify-center">
+                        {currentQuestion.question}
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {shuffledOptions.map((option, index) => (
+                            <Button
+                            key={option}
+                            onClick={() => handleAnswer(option)}
+                            disabled={isAnswered}
+                            className={cn("h-auto p-4 text-base rounded-xl whitespace-normal justify-start transition-all duration-300 font-semibold border-2", getButtonClass(option))}
+                            >
+                            <div className="flex items-center w-full">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-full bg-black/10 flex items-center justify-center font-bold text-sm mr-3">{String.fromCharCode(65 + index)}</div>
+                                <span className="flex-grow text-left">{option}</span>
+                                {isAnswered && (
+                                <div className="ml-4">
+                                    {option === currentQuestion.answer && <Check className="h-6 w-6 text-green-400" />}
+                                    {option !== currentQuestion.answer && option === selectedAnswer && <X className="h-6 w-6 text-red-400" />}
+                                </div>
+                                )}
+                            </div>
+                            </Button>
+                        ))}
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
+          <AlertDialog open={isExitDialogVisible} onOpenChange={setIsExitDialogVisible}>
+            <AlertDialogContent className="bg-secondary">
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to quit?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Your progress will be lost and you will not receive any points for this quiz.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                 <Button variant="outline" onClick={() => setIsExitDialogVisible(false)}>Cancel</Button>
+                 <Button variant="destructive" onClick={() => router.push('/dashboard')}>Quit Quiz</Button>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        <aside className="w-24 hidden lg:flex flex-col items-center gap-4 py-8 sticky top-24">
+            <h3 className="font-bold text-muted-foreground uppercase tracking-widest text-sm">Perks</h3>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useFiftyFifty} disabled={isAnswered || shuffledOptions.length <= 2 || (userPerks['fifty-fifty'] ?? 0) <= 0}>
+                        <HelpCircle className="w-8 h-8" />
+                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['fifty-fifty'] || 0}</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p>Use 50/50: Removes two incorrect options.</p>
+                </TooltipContent>
+            </Tooltip>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useSkipQuestion} disabled={isAnswered || (userPerks['skip-question'] ?? 0) <= 0}>
+                        <SkipForward className="w-8 h-8" />
+                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['skip-question'] || 0}</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p>Skip Question: Move to the next question without penalty.</p>
+                </TooltipContent>
+            </Tooltip>
+             <Tooltip>
+                <TooltipTrigger asChild>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useScoreBooster} disabled={isScoreBoosterActive || (userPerks['score-booster'] ?? 0) <= 0}>
+                        <Zap className={cn("w-8 h-8", isScoreBoosterActive && "text-purple-400")} />
+                         <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['score-booster'] || 0}</span>
+                    </Button>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                    <p>Score Booster: Doubles your score for this quiz.</p>
+                </TooltipContent>
+            </Tooltip>
+        </aside>
     </div>
+    </TooltipProvider>
   );
 }
+

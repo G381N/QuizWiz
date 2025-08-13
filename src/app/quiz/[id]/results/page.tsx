@@ -1,34 +1,103 @@
 
 'use client';
 
-import { useRouter, useParams, useSearchParams } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Home, RotateCw } from 'lucide-react';
+import { Home, RotateCw, Loader2 } from 'lucide-react';
 import * as React from 'react';
+import { type Quiz } from '@/types';
+import { doc, getDoc, serverTimestamp, addDoc, collection, updateDoc } from 'firebase/firestore';
+import { db } from '@/lib/firebase';
+import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/use-auth';
+import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+
+const difficulties = [
+  'dumb-dumb',
+  'novice',
+  'beginner',
+  'intermediate',
+  'advanced',
+  'expert',
+];
 
 export default function ResultsPage() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const quizId = params.id as string;
+  
   const [finalScore, setFinalScore] = React.useState(0);
+  const [quiz, setQuiz] = React.useState<Quiz | null>(null);
+  const [newDifficulty, setNewDifficulty] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
+  const [isGenerating, setIsGenerating] = React.useState(false);
+
 
   React.useEffect(() => {
-    const score = localStorage.getItem(`quiz_score_${quizId}`);
-    if (score) {
-      setFinalScore(parseInt(score, 10));
+    const fetchQuizData = async () => {
+        const score = localStorage.getItem(`quiz_score_${quizId}`);
+        if (score) {
+          setFinalScore(parseInt(score, 10));
+        }
+
+        const docRef = doc(db, 'quizzes', quizId);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+            setQuiz({ id: docSnap.id, ...docSnap.data() } as Quiz);
+            setNewDifficulty(docSnap.data().difficulty);
+        }
+        setLoading(false);
     }
-    setLoading(false);
+    fetchQuizData();
   }, [quizId]);
 
-  const handlePlayAgain = () => {
-    localStorage.removeItem(`quiz_score_${quizId}`);
-    router.push(`/quiz/${quizId}`);
+  const handlePlayNewDifficulty = async () => {
+    if (!quiz || !newDifficulty || !user) return;
+    setIsGenerating(true);
+    try {
+      toast({ title: 'Generating New Quiz...', description: 'Please wait a moment.' });
+      
+      const result: GenerateQuizOutput = await generateQuiz({ topic: quiz.topic, difficulty: newDifficulty, category: quiz.category });
+      
+      if (result && result.quiz) {
+        const newQuizData = {
+          userId: user.uid,
+          topic: quiz.topic,
+          difficulty: newDifficulty,
+          category: quiz.category,
+          description: result.description,
+          questions: result.quiz,
+          leaderboard: [],
+          createdAt: serverTimestamp(),
+        };
+        const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
+        
+        localStorage.removeItem(`quiz_score_${quizId}`);
+        router.push(`/quiz/${docRef.id}`);
+      } else {
+        throw new Error('Failed to generate quiz, please try again.');
+      }
+    } catch (error) {
+       console.error('Quiz generation failed:', error);
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: error instanceof Error ? error.message : 'An unknown error occurred.',
+      });
+      setIsGenerating(false);
+    }
   }
   
   if (loading) {
-    return null;
+    return (
+       <div className="flex justify-center items-center h-[60vh]">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
   }
 
   return (
@@ -54,10 +123,22 @@ export default function ResultsPage() {
             <p className="text-muted-foreground -mt-2">Total Score</p>
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
-          <Button size="lg" className="w-full" onClick={handlePlayAgain}>
-            <RotateCw className="mr-2 h-4 w-4" />
-            Play Again
-          </Button>
+          <div className="w-full space-y-2">
+            <Select onValueChange={setNewDifficulty} defaultValue={newDifficulty ?? undefined}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a new difficulty..." />
+              </SelectTrigger>
+              <SelectContent>
+                {difficulties.map(d => (
+                  <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button size="lg" className="w-full" onClick={handlePlayNewDifficulty} disabled={isGenerating}>
+              {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCw className="mr-2 h-4 w-4" />}
+              {isGenerating ? "Generating..." : "Try a New Difficulty"}
+            </Button>
+          </div>
           <Button variant="ghost" className="w-full" onClick={() => router.push('/dashboard')}>
             <Home className="mr-2 h-4 w-4" />
             Back to Home
@@ -68,4 +149,3 @@ export default function ResultsPage() {
   );
 }
 
-    

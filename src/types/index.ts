@@ -72,6 +72,7 @@ export type Perk = {
 export type UserPerks = {
     'fifty-fifty'?: number;
     'score-booster'?: number;
+    'score-booster-active'?: boolean;
     'time-attack'?: number;
     'skip-question'?: number;
 }
