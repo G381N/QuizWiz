@@ -165,7 +165,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="relative w-full md:flex-grow">
+        <div className="relative w-full md:max-w-md">
           <Input 
             placeholder="Search quizzes by topic..." 
             className="pl-10 h-11" 
@@ -174,7 +174,7 @@ export default function DashboardPage() {
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-11">
