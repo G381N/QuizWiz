@@ -60,7 +60,7 @@ export type UserProfile = {
 }
 
 export type Perk = {
-    id: 'fifty-fifty' | 'score-booster' | 'time-attack';
+    id: 'fifty-fifty' | 'score-booster' | 'time-attack' | 'skip-question';
     name: string;
     description: string;
     cost: number;
@@ -71,5 +71,6 @@ export type UserPerks = {
     'fifty-fifty'?: number;
     'score-booster'?: number;
     'time-attack'?: number;
+    'skip-question'?: number;
 }
     

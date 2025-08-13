@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft, ShieldCheck, Zap, Star, HelpCircle } from 'lucide-react';
+import { Check, X, Clock, Loader2, ArrowLeft, ShieldCheck, Zap, Star, HelpCircle, SkipForward } from 'lucide-react';
 import { type Quiz, type UserPerks } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -251,6 +251,32 @@ export default function QuizPage() {
     }
   }
 
+  const useSkipQuestion = async () => {
+    if (!quiz || !user || isAnswered) return;
+    if (!userPerks['skip-question'] || userPerks['skip-question'] <= 0) {
+      toast({ variant: 'destructive', title: "No Skip perks left!" });
+      return;
+    }
+
+    try {
+      const userDocRef = doc(db, 'users', user.uid);
+      await updateDoc(userDocRef, {
+        'perks.skip-question': increment(-1)
+      });
+      setUserPerks(prev => ({...prev, 'skip-question': (prev['skip-question'] || 1) - 1}));
+
+      clearInterval(timerRef.current!);
+      setIsAnswered(true); // Mark as answered to prevent further interaction
+      setSelectedAnswer(null); // No answer selected
+      toast({ title: "Question Skipped!", description: "You will not receive points for this question." });
+      setTimeout(() => handleNextStep(), 1500);
+
+    } catch (error) {
+      console.error("Failed to use skip perk", error);
+      toast({ variant: 'destructive', title: 'Error', description: 'Could not use perk.' });
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -361,11 +387,17 @@ export default function QuizPage() {
                 </div>
             </CardContent>
         </Card>
-        <div className="text-center">
+        <div className="flex justify-center gap-2">
            {userPerks['fifty-fifty'] && userPerks['fifty-fifty'] > 0 ? (
                 <Button variant="outline" onClick={useFiftyFifty} disabled={isAnswered || shuffledOptions.length <= 2}>
                     <HelpCircle className="mr-2 h-4 w-4" />
                     Use 50/50 ({userPerks['fifty-fifty']} left)
+                </Button>
+            ) : null}
+             {userPerks['skip-question'] && userPerks['skip-question'] > 0 ? (
+                <Button variant="outline" onClick={useSkipQuestion} disabled={isAnswered}>
+                    <SkipForward className="mr-2 h-4 w-4" />
+                    Skip Question ({userPerks['skip-question']} left)
                 </Button>
             ) : null}
         </div>

@@ -7,15 +7,16 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, runTransaction, increment } from 'firebase/firestore';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Star, HelpCircle, Zap, ShieldAlert } from 'lucide-react';
+import { Loader2, Star, HelpCircle, Zap, ShieldAlert, SkipForward } from 'lucide-react';
 import { type Perk, type UserProfile } from '@/types';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const availablePerks: Perk[] = [
     { id: 'fifty-fifty', name: '50/50', description: 'Eliminates two incorrect options on a question.', cost: 500, icon: HelpCircle },
-    { id: 'score-booster', name: 'Score Booster', description: 'Doubles your score for one full quiz.', cost: 1500, icon: Zap },
-    { id: 'time-attack', name: 'Time Attack', description: 'Reduces an opponent\'s question time by 5 seconds.', cost: 1000, icon: ShieldAlert },
+    { id: 'score-booster', name: 'Score Booster', description: 'Doubles your score for one full quiz.', cost: 2500, icon: Zap },
+    { id: 'skip-question', name: 'Skip Question', description: 'Skip a question you don\'t know. You won\'t get points for it.', cost: 750, icon: SkipForward },
+    { id: 'time-attack', name: 'Time Attack', description: 'Reduces an opponent\'s question time to 5 seconds!', cost: 1000, icon: ShieldAlert },
 ];
 
 export default function StorePage() {
