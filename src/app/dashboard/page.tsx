@@ -32,6 +32,7 @@ import {
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { quizCategories } from '@/types';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
@@ -179,11 +180,13 @@ export default function DashboardPage() {
               <DropdownMenuContent>
                 <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                <DropdownMenuRadioGroup value={selectedCategory} onValueChange={setSelectedCategory}>
-                    {allCategories.map(cat => (
-                        <DropdownMenuRadioItem key={cat} value={cat}>{cat}</DropdownMenuRadioItem>
-                    ))}
-                </DropdownMenuRadioGroup>
+                <ScrollArea className="h-[200px]">
+                    <DropdownMenuRadioGroup value={selectedCategory} onValueChange={setSelectedCategory}>
+                        {allCategories.map(cat => (
+                            <DropdownMenuRadioItem key={cat} value={cat}>{cat}</DropdownMenuRadioItem>
+                        ))}
+                    </DropdownMenuRadioGroup>
+                </ScrollArea>
               </DropdownMenuContent>
             </DropdownMenu>
 

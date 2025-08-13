@@ -97,7 +97,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="max-h-[200px]">
                       {[...quizCategories, 'Other'].map((level) => (
                         <SelectItem key={level} value={level} className="capitalize">
                           {level}
