@@ -21,6 +21,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { ChevronDown } from 'lucide-react';
+import * as React from 'react';
 
 interface QuizCardProps {
   quiz: Quiz;
@@ -98,7 +99,11 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
     }
   }
 
-  const availableDifficulties = difficulties.filter(d => d !== quiz.difficulty && !isCompleted(d));
+  const availableDifficulties = React.useMemo(() => {
+    return difficulties.filter(d => 
+        d !== quiz.difficulty && !completedQuizKeys.includes(`${quiz.topic}_${d}`)
+    );
+  }, [quiz.difficulty, quiz.topic, completedQuizKeys]);
   
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
@@ -119,7 +124,7 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
                 </Badge>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                {availableDifficulties.map((d) => (
+                {availableDifficulties.length > 0 ? availableDifficulties.map((d) => (
                   <DropdownMenuItem
                     key={d}
                     onSelect={() => onDifficultyChange(quiz.topic, quiz.category, d)}
@@ -127,7 +132,9 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
                   >
                     {d}
                   </DropdownMenuItem>
-                ))}
+                )) : (
+                  <DropdownMenuItem disabled>No other difficulties available</DropdownMenuItem>
+                )}
               </DropdownMenuContent>
             </DropdownMenu>
         </div>
