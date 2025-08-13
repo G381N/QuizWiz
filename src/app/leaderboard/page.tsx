@@ -56,11 +56,12 @@ export default function LeaderboardPage() {
   }, []);
 
   const filteredLeaderboard = React.useMemo(() => {
+    if (!searchTerm) {
+      return leaderboard;
+    }
     return leaderboard.filter(player => player.name.toLowerCase().includes(searchTerm.toLowerCase()));
   }, [leaderboard, searchTerm]);
   
-  const restOfPlayers = filteredLeaderboard.slice(3);
-
   const currentUserRank = React.useMemo(() => {
     if (!user) return null;
     return leaderboard.find(p => p.id === user.uid) || null;
@@ -75,9 +76,9 @@ export default function LeaderboardPage() {
     )
   }
   
-  const firstPlace = filteredLeaderboard.find(p => p.rank === 1);
-  const secondPlace = filteredLeaderboard.find(p => p.rank === 2);
-  const thirdPlace = filteredLeaderboard.find(p => p.rank === 3);
+  const firstPlace = leaderboard.find(p => p.rank === 1);
+  const secondPlace = leaderboard.find(p => p.rank === 2);
+  const thirdPlace = leaderboard.find(p => p.rank === 3);
 
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
@@ -139,7 +140,7 @@ export default function LeaderboardPage() {
             )) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  The leaderboard is just getting started! Be the first to the top.
+                   {searchTerm ? `No player named "${searchTerm}" found.` : 'The leaderboard is just getting started!'}
                 </TableCell>
               </TableRow>
             )}

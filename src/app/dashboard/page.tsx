@@ -31,7 +31,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
-import { quizCategories } from '@/types';
+import { quizCategories as defaultCategories } from '@/types';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DashboardPage() {
@@ -39,6 +39,7 @@ export default function DashboardPage() {
   const [completedQuizzes, setCompletedQuizzes] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
+  const [quizCategories, setQuizCategories] = React.useState(defaultCategories);
   
   // Search and filter states
   const [searchTerm, setSearchTerm] = React.useState('');
@@ -58,10 +59,17 @@ export default function DashboardPage() {
         const quizQuery = query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'));
         const quizSnapshot = await getDocs(quizQuery);
         const allQuizzes: Quiz[] = [];
+        const dynamicCategories = new Set<string>();
         quizSnapshot.forEach((doc) => {
-          allQuizzes.push({ id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) });
+            const quizData = { id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) };
+            allQuizzes.push(quizData);
+            if(quizData.category) {
+                dynamicCategories.add(quizData.category);
+            }
         });
         setQuizzes(allQuizzes);
+        setQuizCategories(prev => [...new Set([...prev, ...dynamicCategories])])
+
 
         // Fetch user's completed quizzes
         const userDocRef = doc(db, 'users', user.uid);
@@ -105,11 +113,11 @@ export default function DashboardPage() {
           createdAt: serverTimestamp(),
         };
         const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
-        // We can't get the serverTimestamp back immediately, so we'll just prepend and refetch on next load
-        // Or we could optimistically create a client-side timestamp
         const newQuiz = { id: docRef.id, ...newQuizData, createdAt: { seconds: Date.now()/1000 } } as Quiz;
 
-
+        if (!quizCategories.includes(category)) {
+          setQuizCategories(prev => [...new Set([...prev, category])]);
+        }
         setQuizzes([newQuiz, ...quizzes]);
         setIsQuizFormOpen(false);
         router.push(`/quiz/${newQuiz.id}`);
@@ -127,11 +135,8 @@ export default function DashboardPage() {
       return false;
     }
   };
-
-  const allCategories = React.useMemo(() => {
-    const categoriesFromQuizzes = quizzes.map(q => q.category);
-    return ['All', ...new Set([...quizCategories, ...categoriesFromQuizzes])];
-  }, [quizzes]);
+  
+  const allCategories = React.useMemo(() => ['All', ...new Set(quizCategories)], [quizCategories]);
 
   const filteredAndSortedQuizzes = React.useMemo(() => {
     return quizzes
@@ -221,7 +226,7 @@ export default function DashboardPage() {
                     What would you like to learn about today?
                     </DialogDescription>
                 </DialogHeader>
-                <QuizForm onCreateQuiz={handleCreateQuiz} />
+                <QuizForm onCreateQuiz={handleCreateQuiz} categories={quizCategories} />
                 </DialogContent>
             </Dialog>
         </div>
@@ -269,7 +274,7 @@ export default function DashboardPage() {
                       What would you like to learn about today?
                     </DialogDescription>
                   </DialogHeader>
-                  <QuizForm onCreateQuiz={handleCreateQuiz} />
+                  <QuizForm onCreateQuiz={handleCreateQuiz} categories={quizCategories} />
                 </DialogContent>
               </Dialog>
           </div>

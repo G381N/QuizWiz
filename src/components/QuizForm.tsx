@@ -24,14 +24,25 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { quizCategories } from '@/types';
+import { quizCategories as defaultCategories } from '@/types';
+import { ScrollArea } from './ui/scroll-area';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
   difficulty: z.string({ required_error: 'Please select a difficulty.' }),
   category: z.string({ required_error: 'Please select a category.' }),
   otherCategory: z.string().optional(),
+})
+.refine(data => {
+    if (data.category === 'Other') {
+        return !!data.otherCategory && data.otherCategory.length > 0;
+    }
+    return true;
+}, {
+    message: 'Please specify your custom category.',
+    path: ['otherCategory'],
 });
+
 
 type QuizFormValues = z.infer<typeof quizFormSchema>;
 
@@ -46,9 +57,10 @@ const difficulties = [
 
 interface QuizFormProps {
   onCreateQuiz: (topic: string, difficulty: string, category: string) => Promise<boolean>;
+  categories: string[];
 }
 
-export function QuizForm({ onCreateQuiz }: QuizFormProps) {
+export function QuizForm({ onCreateQuiz, categories = defaultCategories }: QuizFormProps) {
   const [isLoading, setIsLoading] = React.useState(false);
 
   const form = useForm<QuizFormValues>({
@@ -91,18 +103,26 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="font-semibold">Category</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <Select onValueChange={(value) => {
+                      field.onChange(value);
+                      if (value !== 'Other') {
+                          form.setValue('otherCategory', '');
+                          form.clearErrors('otherCategory');
+                      }
+                  }} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="rounded-xl h-12 bg-secondary/50 border-border">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent className="max-h-[200px]">
-                      {[...quizCategories, 'Other'].map((level) => (
-                        <SelectItem key={level} value={level} className="capitalize">
-                          {level}
-                        </SelectItem>
-                      ))}
+                    <SelectContent>
+                      <ScrollArea className="h-[200px]">
+                        {[...categories, 'Other'].map((cat) => (
+                          <SelectItem key={cat} value={cat} className="capitalize">
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </ScrollArea>
                     </SelectContent>
                   </Select>
                   <FormMessage />
