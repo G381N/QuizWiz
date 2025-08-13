@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Trophy, Loader2, Star, Search, User as UserIcon } from 'lucide-react';
+import { Crown, Loader2, Star, Search, User as UserIcon } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
@@ -87,14 +87,10 @@ export default function LeaderboardPage() {
         <p className="mt-2 text-muted-foreground">See who's at the top of their game</p>
       </div>
       
-      {/* Top 3 Podium */}
-      {topThree.length >= 3 && (
+      {topThree.length > 0 && (
         <div className="flex justify-center items-end gap-4 md:gap-8 min-h-[250px]">
-            {/* 2nd Place */}
             {secondPlace && <PodiumCard player={secondPlace} rank={2} />}
-            {/* 1st Place */}
             {firstPlace && <PodiumCard player={firstPlace} rank={1} />}
-            {/* 3rd Place */}
             {thirdPlace && <PodiumCard player={thirdPlace} rank={3} />}
         </div>
       )}
@@ -102,7 +98,6 @@ export default function LeaderboardPage() {
       <Separator />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Current User Rank */}
         <Card className="md:col-span-1 bg-secondary/50 border-primary/30">
           <CardContent className="p-4 flex items-center gap-4">
              <div className="w-12 h-12 rounded-lg flex items-center justify-center text-xl font-bold bg-primary/10 text-primary">
@@ -115,7 +110,6 @@ export default function LeaderboardPage() {
           </CardContent>
         </Card>
 
-        {/* Search */}
         <div className="relative md:col-span-2">
             <Input 
                 placeholder="Search for a player..." 
@@ -127,7 +121,6 @@ export default function LeaderboardPage() {
         </div>
       </div>
 
-      {/* Rest of the Leaderboard Table */}
       <div className="bg-secondary/30 rounded-2xl border border-border">
         <Table>
           <TableHeader>
@@ -178,34 +171,52 @@ export default function LeaderboardPage() {
 
 
 const PodiumCard = ({player, rank}: {player: OverallLeaderboardEntry, rank: number}) => {
-    const rankColors = {
-        1: { border: 'border-yellow-400', text: 'text-yellow-400', shadow: 'shadow-yellow-400/20' },
-        2: { border: 'border-slate-400', text: 'text-slate-400', shadow: 'shadow-slate-400/20' },
-        3: { border: 'border-amber-600', text: 'text-amber-600', shadow: 'shadow-amber-600/20' },
-    }
-    const isFirst = rank === 1;
+    const rankConfig = {
+        1: { border: 'border-yellow-400', text: 'text-yellow-400', icon: <Crown className="w-10 h-10 text-yellow-400 mb-2 drop-shadow-lg" />, size: 'w-48', imageSize: 100 },
+        2: { border: 'border-slate-400', text: 'text-slate-400', icon: <TrophyIcon color="#C0C0C0" className="w-8 h-8 mb-2" />, size: 'w-40 mt-8', imageSize: 80 },
+        3: { border: 'border-amber-600', text: 'text-amber-600', icon: <TrophyIcon color="#CD7F32" className="w-8 h-8 mb-2" />, size: 'w-40 mt-8', imageSize: 80 },
+    };
+    
+    const config = rankConfig[rank as keyof typeof rankConfig];
 
     return (
         <div className={cn(
-            "flex flex-col items-center text-center transition-all duration-300",
-            isFirst ? 'w-48' : 'w-40 mt-8'
+            "flex flex-col items-center text-center transition-all duration-300 animate-in fade-in-0 zoom-in-75",
+            config.size
         )}>
-            {isFirst && <Crown className="w-10 h-10 text-yellow-400 mb-2 drop-shadow-lg" />}
+            {config.icon}
             <Image 
                 src={player.avatar || '/default-avatar.png'} 
                 alt={player.name} 
-                width={isFirst ? 100 : 80} 
-                height={isFirst ? 100 : 80} 
+                width={config.imageSize}
+                height={config.imageSize}
                 className={cn(
                     "rounded-full border-4 bg-background/50",
-                    rankColors[rank as keyof typeof rankColors].border
+                    config.border
                 )}
             />
             <p className="mt-3 font-bold text-lg">{player.name}</p>
-            <p className={cn("text-2xl font-extrabold", rankColors[rank as keyof typeof rankColors].text)}>{player.totalScore.toLocaleString()} PTS</p>
+            <p className={cn("text-2xl font-extrabold", config.text)}>{player.totalScore.toLocaleString()} PTS</p>
             <p className="text-sm text-muted-foreground">{player.quizzesSolved} quizzes solved</p>
         </div>
     )
 }
 
-    
+const TrophyIcon = ({color, className}: {color: string, className?: string}) => (
+    <svg 
+        xmlns="http://www.w3.org/2000/svg" 
+        width="24" 
+        height="24" 
+        viewBox="0 0 24 24" 
+        fill="none" 
+        stroke={color}
+        strokeWidth="2" 
+        strokeLinecap="round" 
+        strokeLinejoin="round" 
+        className={cn("w-4 h-4", className)}>
+            <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/>
+            <path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/>
+            <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/>
+            <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/>
+    </svg>
+)
