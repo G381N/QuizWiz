@@ -19,7 +19,7 @@ import {
 } from '@/components/ui/dialog';
 import { QuizForm } from '@/components/QuizForm';
 import { useAuth } from '@/hooks/use-auth';
-import { collection, addDoc, getDocs, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, getDoc, doc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,6 +35,7 @@ import { quizCategories } from '@/types';
 
 export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
+  const [completedQuizzes, setCompletedQuizzes] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
   
@@ -48,19 +49,28 @@ export default function DashboardPage() {
   const { user } = useAuth();
 
   React.useEffect(() => {
-    const fetchQuizzes = async () => {
+    const fetchData = async () => {
       if (!user) return;
       setLoading(true);
       try {
-        const q = query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        // Fetch all quizzes
+        const quizQuery = query(collection(db, 'quizzes'), orderBy('createdAt', 'desc'));
+        const quizSnapshot = await getDocs(quizQuery);
         const allQuizzes: Quiz[] = [];
-        querySnapshot.forEach((doc) => {
+        quizSnapshot.forEach((doc) => {
           allQuizzes.push({ id: doc.id, ...(doc.data() as Omit<Quiz, 'id'>) });
         });
         setQuizzes(allQuizzes);
+
+        // Fetch user's completed quizzes
+        const userDocRef = doc(db, 'users', user.uid);
+        const completedQuizzesCollectionRef = collection(userDocRef, 'completedQuizzes');
+        const completedSnapshot = await getDocs(completedQuizzesCollectionRef);
+        const completedIds = completedSnapshot.docs.map(doc => doc.id);
+        setCompletedQuizzes(completedIds);
+
       } catch (error) {
-        console.error("Failed to fetch quizzes from Firestore", error);
+        console.error("Failed to fetch data from Firestore", error);
         toast({
           variant: 'destructive',
           title: 'Error',
@@ -71,7 +81,7 @@ export default function DashboardPage() {
     };
 
     if(user) {
-        fetchQuizzes();
+        fetchData();
     }
   }, [user, toast]);
 
@@ -217,7 +227,7 @@ export default function DashboardPage() {
       {filteredAndSortedQuizzes.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
-            <QuizCard key={quiz.id} quiz={quiz} />
+            <QuizCard key={quiz.id} quiz={quiz} isCompleted={completedQuizzes.includes(quiz.id)} />
           ))}
         </div>
       ) : (

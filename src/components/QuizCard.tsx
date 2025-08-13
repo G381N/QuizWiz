@@ -13,9 +13,13 @@ import { Badge } from '@/components/ui/badge';
 import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
+import { useAuth } from '@/hooks/use-auth';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 interface QuizCardProps {
   quiz: Quiz;
+  isCompleted: boolean;
 }
 
 const difficultyColors = {
@@ -53,13 +57,28 @@ const medalColors: { [key: number]: string } = {
 };
 
 
-export function QuizCard({ quiz }: QuizCardProps) {
+export function QuizCard({ quiz, isCompleted }: QuizCardProps) {
+  const router = useRouter();
+  const { toast } = useToast();
+
   const uniqueTopPlayers = quiz.leaderboard?.reduce((acc, player) => {
     if (!acc.some(p => p.name === player.name)) {
         acc.push(player);
     }
     return acc;
   }, [] as QuizLeaderboardEntry[]).slice(0, 3) || [];
+
+  const handleStartQuiz = () => {
+    if (isCompleted) {
+        toast({
+            variant: 'destructive',
+            title: "Quiz Already Taken",
+            description: "You can only attempt each quiz once."
+        })
+    } else {
+        router.push(`/quiz/${quiz.id}`);
+    }
+  }
 
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
@@ -91,8 +110,8 @@ export function QuizCard({ quiz }: QuizCardProps) {
           )}
       </CardContent>
       <CardFooter>
-        <Button asChild className="w-full">
-          <Link href={`/quiz/${quiz.id}`}>Start Quiz</Link>
+        <Button onClick={handleStartQuiz} className="w-full" disabled={isCompleted}>
+            {isCompleted ? "Completed" : "Start Quiz"}
         </Button>
       </CardFooter>
     </Card>

@@ -1,3 +1,4 @@
+
 // src/ai/flows/generate-quiz.ts
 'use server';
 /**
@@ -10,7 +11,15 @@
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
-import { quizCategories } from '@/types';
+
+const difficultyQuestionCount: Record<string, number> = {
+  'dumb-dumb': 5,
+  'novice': 7,
+  'beginner': 10,
+  'intermediate': 12,
+  'advanced': 15,
+  'expert': 15,
+};
 
 const GenerateQuizInputSchema = z.object({
   topic: z.string().describe('The topic of the quiz.'),
@@ -48,8 +57,9 @@ const prompt = ai.definePrompt({
   name: 'generateQuizPrompt',
   input: {schema: GenerateQuizInputSchema},
   output: {schema: GenerateQuizOutputSchema},
-  prompt: `You are a quiz generator. Generate a 10-question multiple-choice quiz on the topic of {{{topic}}}. 
+  prompt: `You are a quiz generator. Generate a multiple-choice quiz on the topic of {{{topic}}}. 
 The difficulty level should be {{{difficulty}}}. 
+The quiz should have a specific number of questions based on its difficulty.
 The quiz should be for the category: {{{category}}}.
 Also, generate a short, engaging, one-sentence description for the quiz.
 The quiz should be returned as a JSON object that matches the provided schema.
@@ -65,7 +75,15 @@ const generateQuizFlow = ai.defineFlow(
     outputSchema: GenerateQuizOutputSchema,
   },
   async input => {
-    const {output} = await prompt(input);
+
+    const questionCount = difficultyQuestionCount[input.difficulty] || 10;
+    const modifiedPrompt = `You are a quiz generator. Generate a ${questionCount}-question multiple-choice quiz on the topic of ${input.topic}. 
+The difficulty level should be ${input.difficulty}. 
+The quiz should be for the category: ${input.category}.
+Also, generate a short, engaging, one-sentence description for the quiz.
+The quiz should be returned as a JSON object that matches the provided schema.`
+
+    const {output} = await prompt(input, {prompt: modifiedPrompt});
     return output!;
   }
 );

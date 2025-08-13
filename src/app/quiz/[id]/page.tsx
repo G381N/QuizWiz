@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft, Trophy, Crown, Zap } from 'lucide-react';
+import { Check, X, Clock, Loader2, ArrowLeft, Trophy, Crown, Zap, ShieldCheck } from 'lucide-react';
 import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,18 +21,18 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, runTransaction, increment } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, runTransaction, increment, setDoc } from 'firebase/firestore';
 
 const TIME_PER_QUESTION = 15; // seconds
 const POINTS_PER_SECOND = 10;
 const STREAK_BONUS = 50;
 const DIFFICULTY_MULTIPLIER: { [key: string]: number } = {
-    'dumb-dumb': 0.5,
-    'novice': 0.8,
-    'beginner': 1,
+    'dumb-dumb': 0.2, // Max ~500 for a 5-q quiz
+    'novice': 0.4,   // Max ~800 for a 7-q quiz
+    'beginner': 1.0,
     'intermediate': 1.2,
     'advanced': 1.5,
-    'expert': 2,
+    'expert': 2.0,
 };
 
 export default function QuizPage() {
@@ -50,14 +50,28 @@ export default function QuizPage() {
   const [isExitDialogVisible, setIsExitDialogVisible] = React.useState(false);
   const [view, setView] = React.useState<'quiz' | 'leaderboard'>('quiz');
   const [streak, setStreak] = React.useState(0);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isCompleted, setIsCompleted] = React.useState(false);
+
 
   const timerRef = React.useRef<NodeJS.Timeout>();
   const totalScoreRef = React.useRef(0);
 
   React.useEffect(() => {
-    const fetchQuiz = async () => {
-      if (!quizId) return;
+    const fetchQuizAndCheckCompletion = async () => {
+      if (!quizId || !user) return;
+      setIsLoading(true);
       try {
+        // Check if user has already completed this quiz
+        const completedDocRef = doc(db, 'users', user.uid, 'completedQuizzes', quizId);
+        const completedDocSnap = await getDoc(completedDocRef);
+        if (completedDocSnap.exists()) {
+            setIsCompleted(true);
+            setIsLoading(false);
+            return;
+        }
+
+        // Fetch quiz data
         const docRef = doc(db, 'quizzes', quizId);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -73,12 +87,15 @@ export default function QuizPage() {
         console.error("Failed to load quiz", error);
         router.push('/dashboard');
       }
+      setIsLoading(false);
     };
-    fetchQuiz();
-  }, [quizId, router]);
+    if (user && quizId) {
+        fetchQuizAndCheckCompletion();
+    }
+  }, [quizId, router, user]);
 
   React.useEffect(() => {
-    if (isAnswered || view === 'leaderboard' || !quiz) return;
+    if (isLoading || isCompleted || isAnswered || view === 'leaderboard' || !quiz) return;
     
     timerRef.current = setInterval(() => {
       setTimeLeft((prev) => {
@@ -92,7 +109,7 @@ export default function QuizPage() {
     }, 1000);
 
     return () => clearInterval(timerRef.current!);
-  }, [currentQuestionIndex, isAnswered, view, quiz]);
+  }, [currentQuestionIndex, isAnswered, view, quiz, isLoading, isCompleted]);
 
   const handleNextStep = () => {
       if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
@@ -144,6 +161,7 @@ export default function QuizPage() {
       await runTransaction(db, async (transaction) => {
         const quizDocRef = doc(db, 'quizzes', quizId);
         const userDocRef = doc(db, "users", user.uid);
+        const completedQuizDocRef = doc(userDocRef, 'completedQuizzes', quizId);
         
         const quizDoc = await transaction.get(quizDocRef);
         const userDoc = await transaction.get(userDocRef);
@@ -151,6 +169,10 @@ export default function QuizPage() {
         if (!quizDoc.exists()) {
           throw "Quiz does not exist!";
         }
+
+        // Mark quiz as completed for the user
+        transaction.set(completedQuizDocRef, { completedAt: new Date() });
+
 
         // Update quiz-specific leaderboard
         const newEntry: Omit<QuizLeaderboardEntry, 'rank'> = { 
@@ -199,12 +221,36 @@ export default function QuizPage() {
   };
 
 
-  if (!quiz) {
+  if (isLoading) {
     return (
       <div className="flex justify-center items-center h-[60vh]">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
       </div>
     );
+  }
+
+  if (isCompleted) {
+    return (
+        <div className="flex flex-col items-center justify-center h-[60vh] text-center">
+            <ShieldCheck className="w-24 h-24 text-primary mb-4" />
+            <h1 className="text-3xl font-bold">Quiz Already Completed</h1>
+            <p className="text-muted-foreground mt-2">You can only take each quiz once to keep the leaderboards fair.</p>
+            <Button onClick={() => router.push('/dashboard')} className="mt-6">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Dashboard
+            </Button>
+        </div>
+    )
+  }
+
+  if (!quiz) {
+      // This case should ideally not be reached if loading completes and quiz is not set
+      // but it's good for robustness
+      return (
+        <div className="flex justify-center items-center h-[60vh]">
+            <p>Could not load quiz data.</p>
+        </div>
+      )
   }
 
   const currentQuestion = quiz.questions[currentQuestionIndex];
