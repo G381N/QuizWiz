@@ -30,6 +30,7 @@ const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
   difficulty: z.string({ required_error: 'Please select a difficulty.' }),
   category: z.string({ required_error: 'Please select a category.' }),
+  otherCategory: z.string().optional(),
 });
 
 type QuizFormValues = z.infer<typeof quizFormSchema>;
@@ -57,9 +58,12 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
     },
   });
 
+  const categoryValue = form.watch('category');
+
   const onSubmit = async (values: QuizFormValues) => {
     setIsLoading(true);
-    const success = await onCreateQuiz(values.topic, values.difficulty, values.category);
+    const finalCategory = values.category === 'Other' ? values.otherCategory || 'General Knowledge' : values.category;
+    const success = await onCreateQuiz(values.topic, values.difficulty, finalCategory);
     if (!success) {
       setIsLoading(false);
     }
@@ -94,7 +98,7 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {quizCategories.map((level) => (
+                      {[...quizCategories, 'Other'].map((level) => (
                         <SelectItem key={level} value={level} className="capitalize">
                           {level}
                         </SelectItem>
@@ -105,6 +109,21 @@ export function QuizForm({ onCreateQuiz }: QuizFormProps) {
                 </FormItem>
               )}
             />
+             {categoryValue === 'Other' && (
+              <FormField
+                control={form.control}
+                name="otherCategory"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="font-semibold">Custom Category</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Pokémon" {...field} className="rounded-xl h-12 bg-secondary/50 border-border" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
             <FormField
               control={form.control}
               name="difficulty"

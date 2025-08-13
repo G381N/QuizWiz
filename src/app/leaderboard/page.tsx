@@ -8,22 +8,25 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Crown, Trophy, Loader2, Star } from 'lucide-react';
+import { Crown, Trophy, Loader2, Star, Search } from 'lucide-react';
 import Image from 'next/image';
 import * as React from 'react';
 import { type OverallLeaderboardEntry } from '@/types';
 import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent } from '@/components/ui/card';
 
 export default function LeaderboardPage() {
   const [leaderboard, setLeaderboard] = React.useState<OverallLeaderboardEntry[]>([]);
   const [loading, setLoading] = React.useState(true);
+  const [searchTerm, setSearchTerm] = React.useState('');
 
   React.useEffect(() => {
     const fetchLeaderboard = async () => {
       setLoading(true);
       try {
-        const q = query(collection(db, 'users'), orderBy('totalScore', 'desc'), limit(10));
+        const q = query(collection(db, 'users'), orderBy('totalScore', 'desc'));
         const querySnapshot = await getDocs(q);
         const leaderboardData: OverallLeaderboardEntry[] = [];
         let rank = 1;
@@ -47,6 +50,14 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, []);
 
+  const filteredLeaderboard = React.useMemo(() => {
+    return leaderboard.filter(player => player.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  }, [leaderboard, searchTerm]);
+  
+  const topPlayers = filteredLeaderboard.slice(0,3);
+  const restPlayers = filteredLeaderboard.slice(3);
+
+
   if (loading) {
     return (
         <div className="flex justify-center items-center h-[60vh]">
@@ -56,12 +67,42 @@ export default function LeaderboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto animate-in fade-in-50 duration-500">
-      <div className="flex items-center gap-4 mb-8">
-        <Trophy className="w-8 h-8 text-primary" />
-        <h1 className="text-3xl font-bold tracking-tight">Overall Leaderboard</h1>
+    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in-50 duration-500">
+      <div className="flex flex-col space-y-4">
+        <div className="flex items-center gap-4">
+            <Trophy className="w-8 h-8 text-primary" />
+            <h1 className="text-3xl font-bold tracking-tight">Overall Leaderboard</h1>
+        </div>
+        <div className="relative w-full md:max-w-xs">
+            <Input 
+                placeholder="Search players..." 
+                className="pl-10" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+            />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+        </div>
       </div>
       
+      {/* Top 3 Players */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+        {topPlayers.map((player, index) => (
+            <Card key={player.rank} className="bg-secondary/50 border-border relative pt-10">
+                <div className="absolute -top-8 left-1/2 -translate-x-1/2">
+                    <Image src={player.avatar || '/default-avatar.png'} alt={player.name} width={64} height={64} className="rounded-full border-4" style={{borderColor: index === 0 ? '#FFD700' : index === 1 ? '#C0C0C0' : '#CD7F32'}}/>
+                    {index === 0 && <Crown className="w-8 h-8 text-yellow-400 absolute -top-5 -right-3 rotate-12" />}
+                </div>
+                <CardContent className="space-y-2">
+                    <p className="text-lg font-bold">{player.name}</p>
+                    <p className="text-2xl font-extrabold text-primary">{player.totalScore.toLocaleString()} PTS</p>
+                    <p className="text-sm text-muted-foreground">{player.quizzesSolved} quizzes solved</p>
+                </CardContent>
+            </Card>
+        ))}
+      </div>
+
+
+      {/* Rest of the Leaderboard */}
       <div className="bg-secondary/50 rounded-2xl border border-border">
         <Table>
           <TableHeader>
@@ -73,11 +114,11 @@ export default function LeaderboardPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {leaderboard.length > 0 ? leaderboard.map((player) => (
+            {restPlayers.length > 0 ? restPlayers.map((player) => (
               <TableRow key={player.rank} className="font-medium border-b-0 hover:bg-white/5">
                 <TableCell className="text-center">
-                    <div className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-lg font-bold">
-                        {player.rank === 1 ? <Crown className="w-6 h-6 text-yellow-400" /> : player.rank}
+                    <div className="w-10 h-10 mx-auto rounded-lg flex items-center justify-center text-lg font-bold bg-background/50">
+                        {player.rank}
                     </div>
                 </TableCell>
                 <TableCell>
@@ -99,7 +140,7 @@ export default function LeaderboardPage() {
             )) : (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground py-8">
-                  The leaderboard is empty. Be the first to solve a quiz!
+                  {filteredLeaderboard.length > 0 ? 'No other players found.' : 'The leaderboard is empty. Be the first to solve a quiz!'}
                 </TableCell>
               </TableRow>
             )}

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { type Quiz } from '@/types';
+import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 
@@ -46,7 +46,7 @@ const TrophyIcon = ({color, className}: {color: string, className?: string}) => 
     </svg>
 )
 
-const medalColors = {
+const medalColors: { [key: number]: string } = {
     1: '#FFD700', // Gold
     2: '#C0C0C0', // Silver
     3: '#CD7F32'  // Bronze
@@ -54,7 +54,12 @@ const medalColors = {
 
 
 export function QuizCard({ quiz }: QuizCardProps) {
-  const topPlayers = quiz.leaderboard?.slice(0, 3) || [];
+  const uniqueTopPlayers = quiz.leaderboard?.reduce((acc, player) => {
+    if (!acc.some(p => p.name === player.name)) {
+        acc.push(player);
+    }
+    return acc;
+  }, [] as QuizLeaderboardEntry[]).slice(0, 3) || [];
 
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
@@ -69,11 +74,11 @@ export function QuizCard({ quiz }: QuizCardProps) {
       </CardHeader>
       <CardContent className="flex-grow space-y-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase">Leaderboard</p>
-          {topPlayers.length > 0 ? (
+          {uniqueTopPlayers.length > 0 ? (
             <div className="space-y-2">
-                {topPlayers.map((player) => (
+                {uniqueTopPlayers.map((player) => (
                     <div key={player.rank} className="flex items-center gap-3">
-                        <TrophyIcon color={medalColors[player.rank as keyof typeof medalColors]} />
+                        <TrophyIcon color={medalColors[player.rank] || '#A9A9A9'} />
                         <span className="text-sm font-medium">{player.name.split(' ')[0]}</span>
                         <span className="text-sm text-primary font-bold ml-auto">{player.score.toLocaleString()} PTS</span>
                     </div>

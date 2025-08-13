@@ -117,6 +117,11 @@ export default function DashboardPage() {
     }
   };
 
+  const allCategories = React.useMemo(() => {
+    const categoriesFromQuizzes = quizzes.map(q => q.category);
+    return ['All', ...new Set([...quizCategories, ...categoriesFromQuizzes])];
+  }, [quizzes]);
+
   const filteredAndSortedQuizzes = React.useMemo(() => {
     return quizzes
       .filter(quiz => {
@@ -144,10 +149,10 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 animate-in fade-in-50 duration-500">
       <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div className="relative w-full md:max-w-xs">
+        <div className="relative w-full md:flex-grow">
           <Input 
             placeholder="Search quizzes..." 
-            className="pl-10" 
+            className="pl-10 h-11" 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -156,7 +161,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-2">
            <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="h-11">
                     <Filter className="mr-2 h-4 w-4" />
                     <span>{selectedCategory}</span>
                 </Button>
@@ -165,8 +170,7 @@ export default function DashboardPage() {
                 <DropdownMenuLabel>Filter by Category</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuRadioGroup value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <DropdownMenuRadioItem value="All">All</DropdownMenuRadioItem>
-                    {quizCategories.map(cat => (
+                    {allCategories.map(cat => (
                         <DropdownMenuRadioItem key={cat} value={cat}>{cat}</DropdownMenuRadioItem>
                     ))}
                 </DropdownMenuRadioGroup>
@@ -175,7 +179,7 @@ export default function DashboardPage() {
 
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="h-11">
                     <ArrowDownUp className="mr-2 h-4 w-4" />
                     Sort
                 </Button>
@@ -192,7 +196,7 @@ export default function DashboardPage() {
 
             <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
                 <DialogTrigger asChild>
-                <Button>
+                <Button className="h-11">
                     <Plus className="mr-2 h-4 w-4" />
                     New Quiz
                 </Button>

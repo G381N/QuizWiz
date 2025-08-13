@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Check, X, Clock, Loader2, ArrowLeft, Trophy, Crown } from 'lucide-react';
+import { Check, X, Clock, Loader2, ArrowLeft, Trophy, Crown, Zap } from 'lucide-react';
 import { type Quiz, type QuizLeaderboardEntry } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,11 +21,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
 import { db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc, arrayUnion, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, runTransaction, increment } from 'firebase/firestore';
 
 const TIME_PER_QUESTION = 15; // seconds
 const POINTS_PER_SECOND = 10;
-const DIFFICULTY_MULTIPLIER = {
+const STREAK_BONUS = 50;
+const DIFFICULTY_MULTIPLIER: { [key: string]: number } = {
     'dumb-dumb': 0.5,
     'novice': 0.8,
     'beginner': 1,
@@ -48,8 +49,10 @@ export default function QuizPage() {
   const [isAnswered, setIsAnswered] = React.useState(false);
   const [isExitDialogVisible, setIsExitDialogVisible] = React.useState(false);
   const [view, setView] = React.useState<'quiz' | 'leaderboard'>('quiz');
+  const [streak, setStreak] = React.useState(0);
 
   const timerRef = React.useRef<NodeJS.Timeout>();
+  const totalScoreRef = React.useRef(0);
 
   React.useEffect(() => {
     const fetchQuiz = async () => {
@@ -91,20 +94,18 @@ export default function QuizPage() {
     return () => clearInterval(timerRef.current!);
   }, [currentQuestionIndex, isAnswered, view, quiz]);
 
-  const handleNextStep = async (points: number) => {
+  const handleNextStep = () => {
       if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
         setCurrentQuestionIndex((prev) => prev + 1);
         setIsAnswered(false);
         setSelectedAnswer(null);
         setTimeLeft(TIME_PER_QUESTION);
       } else {
-        const finalScore = score + points;
-        
         if (user) {
-          await updateLeaderboards(finalScore);
+          updateLeaderboards(totalScoreRef.current);
         }
         
-        localStorage.setItem(`quiz_score_${quizId}`, finalScore.toString());
+        localStorage.setItem(`quiz_score_${quizId}`, totalScoreRef.current.toString());
         router.push(`/quiz/${quizId}/results`);
       }
   }
@@ -119,13 +120,21 @@ export default function QuizPage() {
     const currentQuestion = quiz.questions[currentQuestionIndex];
     let points = 0;
     if (answer && currentQuestion && answer === currentQuestion.answer) {
-      const difficulty: keyof typeof DIFFICULTY_MULTIPLIER = quiz.difficulty as any;
-      const multiplier = DIFFICULTY_MULTIPLIER[difficulty] || 1;
+      const multiplier = DIFFICULTY_MULTIPLIER[quiz.difficulty] || 1;
       points = Math.round(timeLeft * POINTS_PER_SECOND * multiplier);
-      setScore((prev) => prev + points);
+      const currentStreak = streak + 1;
+      setStreak(currentStreak);
+      if (currentStreak > 1) {
+          points += STREAK_BONUS * (currentStreak - 1);
+      }
+    } else {
+        setStreak(0);
     }
     
-    setTimeout(() => handleNextStep(points), 2000);
+    totalScoreRef.current += points;
+    setScore(totalScoreRef.current);
+    
+    setTimeout(() => handleNextStep(), 2000);
   };
   
   const updateLeaderboards = async (finalScore: number) => {
@@ -151,7 +160,18 @@ export default function QuizPage() {
         };
 
         const currentLeaderboard = quizDoc.data().leaderboard || [];
-        const updatedLeaderboard = [...currentLeaderboard, newEntry]
+        // Prevent duplicate entries for the same user, keeping the highest score
+        const otherUserEntries = currentLeaderboard.filter((e: any) => e.name !== newEntry.name);
+        const currentUserBest = currentLeaderboard.find((e: any) => e.name === newEntry.name);
+
+        const entriesToConsider = [...otherUserEntries];
+        if (currentUserBest) {
+            entriesToConsider.push(finalScore > currentUserBest.score ? newEntry : currentUserBest);
+        } else {
+            entriesToConsider.push(newEntry);
+        }
+
+        const updatedLeaderboard = entriesToConsider
           .sort((a,b) => b.score - a.score)
           .slice(0, 10) // Keep top 10
           .map((entry, index) => ({ ...entry, rank: index + 1 }));
@@ -167,11 +187,9 @@ export default function QuizPage() {
                 totalScore: finalScore
             });
         } else {
-            const newQuizzesSolved = (userDoc.data().quizzesSolved || 0) + 1;
-            const newTotalScore = (userDoc.data().totalScore || 0) + finalScore;
             transaction.update(userDocRef, { 
-                quizzesSolved: newQuizzesSolved,
-                totalScore: newTotalScore,
+                quizzesSolved: increment(1),
+                totalScore: increment(finalScore),
              });
         }
       });
@@ -214,26 +232,30 @@ export default function QuizPage() {
               <h1 className="text-2xl font-bold tracking-tight">{quiz.topic}</h1>
               {view === 'quiz' && <p className="text-sm text-muted-foreground">{`Question ${currentQuestionIndex + 1} of ${quiz.questions.length}`}</p>}
             </div>
-            <div className="w-20 text-right">
-                {view === 'quiz' ? (
-                     <div className="flex items-center justify-end gap-2 text-lg font-bold text-primary">
-                        <Clock className="h-6 w-6" />
-                        <span>{timeLeft}s</span>
-                    </div>
-                ) : (
-                    <Button variant="outline" onClick={() => setView('quiz')}>
-                        Play
-                    </Button>
-                )}
+            <div className="w-24 text-right flex items-center justify-end gap-2 text-lg font-bold text-muted-foreground">
+                <Zap className="h-5 w-5 text-primary"/>
+                {score}
             </div>
         </div>
         
         {view === 'quiz' && (
             <>
-                <Progress value={progress} className="w-full h-2" />
+                <div className="relative h-2 w-full bg-secondary rounded-full">
+                    <div className="absolute top-0 left-0 h-2 bg-primary rounded-full" style={{width: `${progress}%`, transition: 'width 0.5s ease-in-out'}}></div>
+                </div>
                 <Card className="shadow-2xl border-none rounded-2xl bg-transparent">
                     <CardContent className="pt-6">
                         <div className="space-y-8">
+                            <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2">
+                                    {streak > 1 && <div className="flex items-center gap-1 text-orange-400 font-bold animate-in fade-in-0 zoom-in-50"><Zap className="w-4 h-4"/> x{streak}</div>}
+                                </div>
+                                 <div className="flex items-center justify-end gap-2 text-lg font-bold text-primary">
+                                    <Clock className="h-6 w-6" />
+                                    <span>{timeLeft}s</span>
+                                </div>
+                            </div>
+
                             <h2 className="text-2xl md:text-3xl text-center font-bold leading-tight">
                             {currentQuestion.question}
                             </h2>
@@ -323,5 +345,3 @@ export default function QuizPage() {
     </div>
   );
 }
-
-    
