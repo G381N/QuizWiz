@@ -39,6 +39,7 @@ export type Quiz = {
   questions: Question[];
   leaderboard: QuizLeaderboardEntry[];
   createdAt: Timestamp | { seconds: number };
+  completions?: number;
 };
 
 export type OverallLeaderboardEntry = {
@@ -55,6 +56,20 @@ export type UserProfile = {
     photoURL: string;
     quizzesSolved: number;
     totalScore: number;
+    perks?: UserPerks;
 }
 
+export type Perk = {
+    id: 'fifty-fifty' | 'score-booster' | 'time-attack';
+    name: string;
+    description: string;
+    cost: number;
+    icon: React.ComponentType<{ className?: string }>;
+}
+
+export type UserPerks = {
+    'fifty-fifty'?: number;
+    'score-booster'?: number;
+    'time-attack'?: number;
+}
     

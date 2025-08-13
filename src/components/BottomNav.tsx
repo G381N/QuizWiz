@@ -3,12 +3,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Home, User, LayoutGrid } from "lucide-react"
+import { Home, User, LayoutGrid, Store } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const navItems = [
     { href: "/dashboard", icon: Home, label: "Home" },
     { href: "/leaderboard", icon: LayoutGrid, label: "Leaderboard" },
+    { href: "/store", icon: Store, label: "Store" },
     { href: "/profile", icon: User, label: "Profile" },
 ]
 
@@ -16,7 +17,7 @@ export function BottomNav() {
     const pathname = usePathname()
 
     return (
-        <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-background/80 backdrop-blur-sm border-t border-border">
+        <div className="md:hidden fixed bottom-0 left-0 right-0 h-20 bg-background/80 backdrop-blur-sm border-t border-border z-50">
             <nav className="flex justify-around items-center h-full">
                 {navItems.map((item) => {
                     const isActive = (item.href === "/dashboard" && pathname === item.href) || (pathname.startsWith(item.href) && item.href !== "/dashboard");

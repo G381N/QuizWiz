@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import Image from 'next/image';
 import { useAuth } from '@/hooks/use-auth';
-import { LogOut, Star } from 'lucide-react';
+import { LogOut, Star, Store } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,25 +15,25 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import * as React from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 export default function Header() {
   const { user, signOut: logOut } = useAuth();
   const [totalScore, setTotalScore] = React.useState(0);
+  const router = useRouter();
 
   React.useEffect(() => {
-    const fetchUserScore = async () => {
-        if (user) {
-            const userDocRef = doc(db, 'users', user.uid);
-            const userDoc = await getDoc(userDocRef);
-            if(userDoc.exists()) {
-                setTotalScore(userDoc.data().totalScore || 0);
+    if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const unsubscribe = onSnapshot(userDocRef, (doc) => {
+             if(doc.exists()) {
+                setTotalScore(doc.data().totalScore || 0);
             }
-        }
+        });
+        return () => unsubscribe();
     }
-    fetchUserScore();
-    // Re-fetch on user change
   }, [user]);
 
   return (
@@ -57,6 +57,7 @@ export default function Header() {
             <div className="hidden md:flex items-center gap-6">
                <Link href="/dashboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
                <Link href="/leaderboard" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Leaderboard</Link>
+               <Link href="/store" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Store</Link>
             </div>
             <div className="flex items-center gap-2">
               {user && (
@@ -75,10 +76,14 @@ export default function Header() {
                     </DropdownMenuLabel>
                      <DropdownMenuSeparator />
                      <div className="px-2 py-1.5 text-sm flex items-center">
-                        <Star className="mr-2 h-4 w-4 text-primary" />
+                        <Star className="mr-2 h-4 w-4 text-yellow-400" />
                         <span className="font-semibold">{totalScore.toLocaleString()} PTS</span>
                      </div>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => router.push('/store')}>
+                      <Store className="mr-2 h-4 w-4" />
+                      <span>Perk Store</span>
+                    </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => logOut()}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Log out</span>
