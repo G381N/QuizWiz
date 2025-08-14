@@ -18,10 +18,10 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { useAuth } from '@/hooks/use-auth';
-import { db } from '@/lib/firebase';
 import { doc, getDoc, updateDoc, runTransaction, increment, collection, query, where, getDocs, writeBatch, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { db } from '@/lib/firebase';
 
 
 const DEFAULT_TIME_PER_QUESTION = 15; // seconds

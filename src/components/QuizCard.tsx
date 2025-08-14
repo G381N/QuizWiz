@@ -26,7 +26,7 @@ import * as React from 'react';
 interface QuizCardProps {
   quiz: Quiz;
   completedQuizKeys: string[];
-  onDifficultyChange: (topic: string, category: string, newDifficulty: string) => void;
+  onDifficultyChange: (originalQuizId: string, topic: string, category: string, newDifficulty: string) => void;
 }
 
 const difficulties = [
@@ -79,7 +79,15 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
 
   const isCompleted = (difficulty: string) => {
     return completedQuizKeys.includes(`${quiz.topic}_${difficulty}`);
-  }
+  };
+
+  const currentDifficultyCompleted = isCompleted(quiz.difficulty);
+
+  const availableDifficulties = React.useMemo(() => {
+    return difficulties.filter(d => 
+        d !== quiz.difficulty && !completedQuizKeys.includes(`${quiz.topic}_${d}`)
+    );
+  }, [quiz.difficulty, quiz.topic, completedQuizKeys]);
 
   const uniqueTopPlayers = quiz.leaderboard?.reduce((acc, player) => {
     if (!acc.some(p => p.name === player.name)) {
@@ -89,7 +97,7 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
   }, [] as QuizLeaderboardEntry[]).slice(0, 3) || [];
   
   const handleStartQuiz = () => {
-    if (isCompleted(quiz.difficulty)) {
+    if (currentDifficultyCompleted) {
         toast({
             title: "Difficulty Already Completed",
             description: "You have already completed this quiz on this difficulty. Try another one!"
@@ -99,12 +107,6 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
     }
   }
 
-  const availableDifficulties = React.useMemo(() => {
-    return difficulties.filter(d => 
-        d !== quiz.difficulty && !completedQuizKeys.includes(`${quiz.topic}_${d}`)
-    );
-  }, [quiz.difficulty, quiz.topic, completedQuizKeys]);
-  
   return (
     <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
       <CardHeader>
@@ -127,7 +129,7 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
                 {availableDifficulties.length > 0 ? availableDifficulties.map((d) => (
                   <DropdownMenuItem
                     key={d}
-                    onSelect={() => onDifficultyChange(quiz.topic, quiz.category, d)}
+                    onSelect={() => onDifficultyChange(quiz.id, quiz.topic, quiz.category, d)}
                     className="capitalize"
                   >
                     {d}
@@ -159,8 +161,8 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
           )}
       </CardContent>
       <CardFooter>
-        <Button onClick={handleStartQuiz} className="w-full" disabled={isCompleted(quiz.difficulty)}>
-            {isCompleted(quiz.difficulty) ? "Completed" : "Start Quiz"}
+        <Button onClick={handleStartQuiz} className="w-full" disabled={currentDifficultyCompleted}>
+            {currentDifficultyCompleted ? "Completed" : "Start Quiz"}
         </Button>
       </CardFooter>
     </Card>

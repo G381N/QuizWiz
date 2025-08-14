@@ -134,9 +134,9 @@ export default function DashboardPage() {
     }
   };
 
-  const handleDifficultyChange = async (topic: string, category: string, newDifficulty: string) => {
-    const isAlreadyCompleted = completedQuizKeys.includes(`${topic}_${newDifficulty}`);
-    if (isAlreadyCompleted) {
+  const handleDifficultyChange = async (originalQuizId: string, topic: string, category: string, newDifficulty: string) => {
+    const completionKey = `${topic}_${newDifficulty}`;
+    if (completedQuizKeys.includes(completionKey)) {
         toast({
             variant: "destructive",
             title: "Already Completed",
@@ -145,7 +145,6 @@ export default function DashboardPage() {
         return;
     }
     
-    // 1. Check if a quiz with this topic and new difficulty already exists.
     const q = query(collection(db, 'quizzes'), 
       where('topic', '==', topic), 
       where('difficulty', '==', newDifficulty)
@@ -153,18 +152,21 @@ export default function DashboardPage() {
     
     const querySnapshot = await getDocs(q);
 
+    let targetQuiz: Quiz;
+
     if (!querySnapshot.empty) {
-      // Quiz exists, navigate to it
-      const existingQuiz = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Quiz;
-      router.push(`/quiz/${existingQuiz.id}`);
+      targetQuiz = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Quiz;
     } else {
-      // Quiz does not exist, create it
       toast({ title: 'Generating New Quiz...', description: `Creating a "${newDifficulty}" version of "${topic}".`});
       const newQuiz = await handleCreateQuiz(topic, newDifficulty, category);
-      if (newQuiz) {
-        router.push(`/quiz/${newQuiz.id}`);
+      if (!newQuiz) {
+        return; // Quiz generation failed
       }
+      targetQuiz = newQuiz;
     }
+    
+    // Update the state to show the new quiz card version
+    setQuizzes(prevQuizzes => prevQuizzes.map(q => q.id === originalQuizId ? targetQuiz : q));
   };
   
   const allCategories = React.useMemo(() => ['All', ...new Set(quizCategories)], [quizCategories]);
@@ -172,16 +174,22 @@ export default function DashboardPage() {
   const filteredAndSortedQuizzes = React.useMemo(() => {
     const uniqueTopics = new Map<string, Quiz>();
     
-    // Sort by creation date to show the most recent version of a topic
-    const sortedByDate = [...quizzes].sort((a,b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+    // Create a copy to avoid mutating the original state directly
+    const quizzesToSort = [...quizzes];
 
-    for (const quiz of sortedByDate) {
+    // Sort by creation date to show the most recent version of a topic first
+    quizzesToSort.sort((a,b) => (b.createdAt?.seconds ?? 0) - (a.createdAt?.seconds ?? 0));
+
+    // Filter to show only one card per topic (the most recently interacted with one)
+    for (const quiz of quizzesToSort) {
         if (!uniqueTopics.has(quiz.topic.toLowerCase())) {
             uniqueTopics.set(quiz.topic.toLowerCase(), quiz);
         }
     }
+    
+    const displayedQuizzes = Array.from(uniqueTopics.values());
 
-    return Array.from(uniqueTopics.values())
+    return displayedQuizzes
       .filter(quiz => {
         const matchesSearch = quiz.topic.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesCategory = selectedCategory === 'All' || quiz.category === selectedCategory;
@@ -288,7 +296,7 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredAndSortedQuizzes.map((quiz) => (
             <QuizCard 
-              key={quiz.topic + quiz.difficulty} 
+              key={quiz.id} 
               quiz={quiz} 
               onDifficultyChange={handleDifficultyChange}
               completedQuizKeys={completedQuizKeys}
