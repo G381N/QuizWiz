@@ -7,14 +7,14 @@ import { Button } from '@/components/ui/button';
 import { Home, RotateCw, Loader2 } from 'lucide-react';
 import * as React from 'react';
 import { type Quiz } from '@/types';
-import { doc, getDoc, serverTimestamp, addDoc, collection, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, serverTimestamp, addDoc, collection, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/use-auth';
 import { generateQuiz, type GenerateQuizOutput } from '@/ai/flows/generate-quiz';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
-const difficulties = [
+const allDifficulties = [
   'dumb-dumb',
   'novice',
   'beginner',
@@ -35,52 +35,102 @@ export default function ResultsPage() {
   const [newDifficulty, setNewDifficulty] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(true);
   const [isGenerating, setIsGenerating] = React.useState(false);
+  const [completedQuizKeys, setCompletedQuizKeys] = React.useState<string[]>([]);
 
 
   React.useEffect(() => {
     const fetchQuizData = async () => {
-        const score = localStorage.getItem(`quiz_score_${quizId}`);
-        if (score) {
-          setFinalScore(parseInt(score, 10));
-        }
-
-        const docRef = doc(db, 'quizzes', quizId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            setQuiz({ id: docSnap.id, ...docSnap.data() } as Quiz);
-            setNewDifficulty(docSnap.data().difficulty);
-        }
+      if (!user) {
         setLoading(false);
+        return;
+      }
+      setLoading(true);
+
+      const score = localStorage.getItem(`quiz_score_${quizId}`);
+      if (score) {
+        setFinalScore(parseInt(score, 10));
+      }
+
+      const docRef = doc(db, 'quizzes', quizId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
+        setQuiz(quizData);
+        setNewDifficulty(quizData.difficulty);
+
+        // Fetch completed quizzes to filter the difficulty dropdown
+        const completedQuizzesCollectionRef = collection(db, 'users', user.uid, 'completedQuizzes');
+        const completedSnapshot = await getDocs(completedQuizzesCollectionRef);
+        const completedKeys = completedSnapshot.docs.map(doc => doc.id.split('_')[1]);
+        
+        // This logic seems incorrect. The keys are like 'Topic_difficulty'
+        const correctCompletedKeys = completedSnapshot.docs.map(doc => doc.id);
+        const topicSpecificCompletedDifficulties = correctCompletedKeys
+            .filter(key => key.startsWith(`${quizData.topic}_`))
+            .map(key => key.substring(quizData.topic.length + 1));
+        
+        setCompletedQuizKeys(topicSpecificCompletedDifficulties);
+
+      }
+      setLoading(false);
     }
     fetchQuizData();
-  }, [quizId]);
+  }, [quizId, user]);
+  
+  const availableDifficulties = React.useMemo(() => {
+    if (!quiz) return [];
+    // Only show difficulties that are not completed
+    return allDifficulties.filter(d => !completedQuizKeys.includes(d));
+  }, [completedQuizKeys, quiz]);
+
 
   const handlePlayNewDifficulty = async () => {
     if (!quiz || !newDifficulty || !user) return;
+    
+    // Final check before generating
+    if(completedQuizKeys.includes(newDifficulty)) {
+      toast({ variant: 'destructive', title: "Already Completed", description: "You have already completed this difficulty."});
+      return;
+    }
+    
     setIsGenerating(true);
+    
     try {
-      toast({ title: 'Generating New Quiz...', description: 'Please wait a moment.' });
-      
-      const result: GenerateQuizOutput = await generateQuiz({ topic: quiz.topic, difficulty: newDifficulty, category: quiz.category });
-      
-      if (result && result.quiz) {
-        const newQuizData = {
-          userId: user.uid,
-          topic: quiz.topic,
-          difficulty: newDifficulty,
-          category: quiz.category,
-          description: result.description,
-          questions: result.quiz,
-          leaderboard: [],
-          createdAt: serverTimestamp(),
-        };
-        const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
-        
+        // Check if a quiz with this topic and difficulty already exists
+        const q = query(collection(db, 'quizzes'), 
+            where('topic', '==', quiz.topic), 
+            where('difficulty', '==', newDifficulty)
+        );
+        const querySnapshot = await getDocs(q);
+
+        let targetQuizId: string;
+
+        if (!querySnapshot.empty) {
+            targetQuizId = querySnapshot.docs[0].id;
+        } else {
+            toast({ title: 'Generating New Quiz...', description: 'Please wait a moment.' });
+            const result: GenerateQuizOutput = await generateQuiz({ topic: quiz.topic, difficulty: newDifficulty, category: quiz.category });
+            
+            if (result && result.quiz) {
+                const newQuizData = {
+                userId: user.uid,
+                topic: quiz.topic,
+                difficulty: newDifficulty,
+                category: quiz.category,
+                description: result.description,
+                questions: result.quiz,
+                leaderboard: [],
+                createdAt: serverTimestamp(),
+                };
+                const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
+                targetQuizId = docRef.id;
+            } else {
+                throw new Error('Failed to generate quiz, please try again.');
+            }
+        }
         localStorage.removeItem(`quiz_score_${quizId}`);
-        router.push(`/quiz/${docRef.id}`);
-      } else {
-        throw new Error('Failed to generate quiz, please try again.');
-      }
+        router.push(`/quiz/${targetQuizId}`);
+
     } catch (error) {
        console.error('Quiz generation failed:', error);
       toast({
@@ -125,16 +175,20 @@ export default function ResultsPage() {
         <CardFooter className="flex flex-col gap-3">
           <div className="w-full space-y-2">
             <Select onValueChange={setNewDifficulty} defaultValue={newDifficulty ?? undefined}>
-              <SelectTrigger>
+              <SelectTrigger disabled={availableDifficulties.length === 0}>
                 <SelectValue placeholder="Select a new difficulty..." />
               </SelectTrigger>
               <SelectContent>
-                {difficulties.map(d => (
-                  <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
-                ))}
+                {availableDifficulties.length > 0 ? (
+                  availableDifficulties.map(d => (
+                    <SelectItem key={d} value={d} className="capitalize">{d}</SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="none" disabled>No more difficulties left!</SelectItem>
+                )}
               </SelectContent>
             </Select>
-            <Button size="lg" className="w-full" onClick={handlePlayNewDifficulty} disabled={isGenerating}>
+            <Button size="lg" className="w-full" onClick={handlePlayNewDifficulty} disabled={isGenerating || !newDifficulty || availableDifficulties.length === 0}>
               {isGenerating ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <RotateCw className="mr-2 h-4 w-4" />}
               {isGenerating ? "Generating..." : "Try a New Difficulty"}
             </Button>
@@ -149,3 +203,4 @@ export default function ResultsPage() {
   );
 }
 
+    
