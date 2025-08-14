@@ -163,7 +163,7 @@ export default function QuizPage() {
     return () => clearInterval(timerRef.current!);
   }, [currentQuestionIndex, isAnswered, quiz, isLoading, isCompleted]);
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
       if (currentQuestionIndex < (quiz?.questions.length ?? 0) - 1) {
         setCurrentQuestionIndex((prev) => prev + 1);
         setIsAnswered(false);
@@ -171,7 +171,7 @@ export default function QuizPage() {
         setTimeLeft(timePerQuestion);
       } else {
         if (user) {
-          updateLeaderboards(totalScoreRef.current);
+          await updateLeaderboards(totalScoreRef.current);
         }
         
         localStorage.setItem(`quiz_score_${quizId}`, totalScoreRef.current.toString());
