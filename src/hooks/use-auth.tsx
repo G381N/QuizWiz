@@ -9,8 +9,10 @@ import {
   signOut,
   type User,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { auth, db } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+
 
 interface AuthContextType {
   user: User | null;
@@ -27,8 +29,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const router = useRouter();
 
   React.useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const userDocRef = doc(db, 'users', user.uid);
+        const userDoc = await getDoc(userDocRef);
+
+        if (!userDoc.exists()) {
+          // This is a new user, create their document
+          await setDoc(userDocRef, {
+            displayName: user.displayName,
+            email: user.email,
+            photoURL: user.photoURL,
+            createdAt: serverTimestamp(),
+            totalScore: 0,
+            quizzesSolved: 0,
+            perks: {
+                'fifty-fifty': 1,
+                'score-booster': 0,
+                'skip-question': 1,
+                'time-attack': 0,
+            },
+          });
+        }
+        setUser(user);
+      } else {
+        setUser(null);
+      }
       setLoading(false);
     });
     return () => unsubscribe();
@@ -38,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const provider = new GoogleAuthProvider();
     try {
       await signInWithPopup(auth, provider);
-      router.push('/dashboard');
+      // onAuthStateChanged will handle the user document creation and routing
     } catch (error) {
       console.error('Error signing in with Google', error);
     }
