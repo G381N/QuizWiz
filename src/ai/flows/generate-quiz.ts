@@ -99,8 +99,14 @@ const generateQuizFlow = ai.defineFlow(
   async input => {
 
     const questionCount = difficultyQuestionCount[input.difficulty] || 10;
+    
+    let difficultyInstructions = `The difficulty level should be ${input.difficulty}.`;
+    if (input.difficulty === 'point-farming') {
+      difficultyInstructions = 'The difficulty level should be point-farming. This means the questions should be extremely, extremely, extremely hard, suitable for an expert on the topic who is farming for points with high-risk, high-reward questions.'
+    }
+
     const modifiedPrompt = `You are a quiz generator. Generate a ${questionCount}-question multiple-choice quiz on the topic of ${input.topic}. 
-The difficulty level should be ${input.difficulty}. 
+${difficultyInstructions}
 The quiz should be for the category: ${input.category}.
 Also, generate a short, engaging, one-sentence description for the quiz.
 The quiz should be returned as a JSON object that matches the provided schema.`
