@@ -480,9 +480,9 @@ export default function QuizPage() {
             <h3 className="font-bold text-muted-foreground uppercase tracking-widest text-sm">Perks</h3>
             <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useFiftyFifty} disabled={isAnswered || shuffledOptions.length <= 2 || (userPerks['fifty-fifty'] ?? 0) <= 0}>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-full bg-secondary/30 relative" onClick={useFiftyFifty} disabled={isAnswered || shuffledOptions.length <= 2 || (userPerks['fifty-fifty'] ?? 0) <= 0}>
                         <HelpCircle className="w-8 h-8" />
-                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['fifty-fifty'] || 0}</span>
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">{userPerks['fifty-fifty'] || 0}</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
@@ -491,9 +491,9 @@ export default function QuizPage() {
             </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useSkipQuestion} disabled={isAnswered || (userPerks['skip-question'] ?? 0) <= 0}>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-full bg-secondary/30 relative" onClick={useSkipQuestion} disabled={isAnswered || (userPerks['skip-question'] ?? 0) <= 0}>
                         <SkipForward className="w-8 h-8" />
-                        <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['skip-question'] || 0}</span>
+                        <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">{userPerks['skip-question'] || 0}</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
@@ -502,9 +502,9 @@ export default function QuizPage() {
             </Tooltip>
              <Tooltip>
                 <TooltipTrigger asChild>
-                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-2xl bg-secondary/30" onClick={useScoreBooster} disabled={isAnswered || isScoreBoosterActive || (userPerks['score-booster'] ?? 0) <= 0}>
+                    <Button variant="outline" size="icon" className="h-16 w-16 rounded-full bg-secondary/30 relative" onClick={useScoreBooster} disabled={isAnswered || isScoreBoosterActive || (userPerks['score-booster'] ?? 0) <= 0}>
                         <Zap className={cn("w-8 h-8", isScoreBoosterActive && "text-purple-400")} />
-                         <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">{userPerks['score-booster'] || 0}</span>
+                         <span className="absolute -top-1 -right-1 bg-primary text-primary-foreground text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center border-2 border-background">{userPerks['score-booster'] || 0}</span>
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent side="left">
@@ -516,5 +516,3 @@ export default function QuizPage() {
     </TooltipProvider>
   );
 }
-
-    

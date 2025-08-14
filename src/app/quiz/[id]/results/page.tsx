@@ -56,18 +56,15 @@ export default function ResultsPage() {
       if (docSnap.exists()) {
         const quizData = { id: docSnap.id, ...docSnap.data() } as Quiz;
         setQuiz(quizData);
-        setNewDifficulty(quizData.difficulty);
+        // Do not set newDifficulty here anymore to let user choose
 
         // Fetch completed quizzes to filter the difficulty dropdown
         const completedQuizzesCollectionRef = collection(db, 'users', user.uid, 'completedQuizzes');
         const completedSnapshot = await getDocs(completedQuizzesCollectionRef);
-        const completedKeys = completedSnapshot.docs.map(doc => doc.id.split('_')[1]);
         
-        // This logic seems incorrect. The keys are like 'Topic_difficulty'
-        const correctCompletedKeys = completedSnapshot.docs.map(doc => doc.id);
-        const topicSpecificCompletedDifficulties = correctCompletedKeys
-            .filter(key => key.startsWith(`${quizData.topic}_`))
-            .map(key => key.substring(quizData.topic.length + 1));
+        const topicSpecificCompletedDifficulties = completedSnapshot.docs
+            .filter(doc => doc.id.startsWith(`${quizData.topic}_`))
+            .map(doc => doc.id.substring(quizData.topic.length + 1));
         
         setCompletedQuizKeys(topicSpecificCompletedDifficulties);
 
@@ -79,8 +76,9 @@ export default function ResultsPage() {
   
   const availableDifficulties = React.useMemo(() => {
     if (!quiz) return [];
-    // Only show difficulties that are not completed
-    return allDifficulties.filter(d => !completedQuizKeys.includes(d));
+    // Also include the current difficulty in completed keys for filtering
+    const allCompleted = [...completedQuizKeys, quiz.difficulty];
+    return allDifficulties.filter(d => !allCompleted.includes(d));
   }, [completedQuizKeys, quiz]);
 
 
@@ -88,7 +86,7 @@ export default function ResultsPage() {
     if (!quiz || !newDifficulty || !user) return;
     
     // Final check before generating
-    if(completedQuizKeys.includes(newDifficulty)) {
+    if(completedQuizKeys.includes(newDifficulty) || newDifficulty === quiz.difficulty) {
       toast({ variant: 'destructive', title: "Already Completed", description: "You have already completed this difficulty."});
       return;
     }
@@ -174,7 +172,7 @@ export default function ResultsPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-3">
           <div className="w-full space-y-2">
-            <Select onValueChange={setNewDifficulty} defaultValue={newDifficulty ?? undefined}>
+            <Select onValueChange={setNewDifficulty} value={newDifficulty || ''}>
               <SelectTrigger disabled={availableDifficulties.length === 0}>
                 <SelectValue placeholder="Select a new difficulty..." />
               </SelectTrigger>
@@ -202,5 +200,3 @@ export default function ResultsPage() {
     </div>
   );
 }
-
-    
