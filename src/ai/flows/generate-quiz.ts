@@ -19,6 +19,7 @@ const difficultyQuestionCount: Record<string, number> = {
   'intermediate': 12,
   'advanced': 15,
   'expert': 15,
+  'point-farming': 20,
 };
 
 const GenerateQuizInputSchema = z.object({
@@ -31,6 +32,7 @@ const GenerateQuizInputSchema = z.object({
       'intermediate',
       'advanced',
       'expert',
+      'point-farming',
     ])
     .describe('The difficulty level of the quiz.'),
     category: z.string().describe('The category for this quiz.')

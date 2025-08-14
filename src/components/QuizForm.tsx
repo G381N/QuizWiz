@@ -53,6 +53,7 @@ const difficulties = [
   'intermediate',
   'advanced',
   'expert',
+  'point-farming',
 ];
 
 interface QuizFormProps {

@@ -37,6 +37,7 @@ const DIFFICULTY_MULTIPLIER: { [key: string]: number } = {
     'intermediate': 1.2,
     'advanced': 1.5,
     'expert': 2.0,
+    'point-farming': 2.5,
 };
 
 export default function QuizPage() {

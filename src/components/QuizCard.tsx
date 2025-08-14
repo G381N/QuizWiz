@@ -36,6 +36,7 @@ const difficulties = [
   'intermediate',
   'advanced',
   'expert',
+  'point-farming',
 ];
 
 const difficultyColors = {
@@ -45,6 +46,7 @@ const difficultyColors = {
   intermediate: 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
   advanced: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
   expert: 'bg-red-500/10 text-red-400 border-red-500/20',
+  'point-farming': 'bg-purple-500/10 text-purple-400 border-purple-500/20',
 } as const;
 
 const TrophyIcon = ({color, className}: {color: string, className?: string}) => (

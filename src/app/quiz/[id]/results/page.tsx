@@ -21,6 +21,7 @@ const allDifficulties = [
   'intermediate',
   'advanced',
   'expert',
+  'point-farming',
 ];
 
 export default function ResultsPage() {
