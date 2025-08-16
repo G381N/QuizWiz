@@ -110,63 +110,71 @@ export function QuizCard({ quiz, completedQuizKeys, onDifficultyChange }: QuizCa
   }
 
   return (
-    <Card className="flex flex-col h-full bg-secondary/50 border-border hover:border-primary/50 transition-colors duration-300 rounded-2xl group">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-            <CardTitle className="font-bold text-lg pr-2">{quiz.topic}</CardTitle>
-             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Badge
-                  variant="outline"
-                  className={cn(
-                    "capitalize border text-xs w-fit shrink-0 cursor-pointer flex items-center gap-1",
-                    difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner
-                  )}
-                >
-                  {quiz.difficulty}
-                  <ChevronDown className="h-3 w-3" />
-                </Badge>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {availableDifficulties.length > 0 ? availableDifficulties.map((d) => (
-                  <DropdownMenuItem
-                    key={d}
-                    onSelect={() => onDifficultyChange(quiz.id, quiz.topic, quiz.category, d)}
-                    className="capitalize"
+    <div className="h-full" id={`quiz-${quiz.id}`}>
+      {/* Simple border highlight on hover */}
+      <Card className="flex flex-col h-full bg-secondary/50 hover:bg-secondary/70 border-border hover:border-primary/50 transition-all duration-300 rounded-2xl hover:shadow-md">
+        
+        <CardHeader className="pb-4">
+          <div className="flex justify-between items-start">
+              <CardTitle className="font-bold text-lg pr-2 line-clamp-1">{quiz.topic}</CardTitle>
+               <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Badge
+                    variant="outline"
+                    className={cn(
+                      "capitalize border text-xs w-fit shrink-0 cursor-pointer flex items-center gap-1",
+                      difficultyColors[quiz.difficulty as keyof typeof difficultyColors] || difficultyColors.beginner
+                    )}
                   >
-                    {d}
-                  </DropdownMenuItem>
-                )) : (
-                  <DropdownMenuItem disabled>No other difficulties available</DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-        </div>
-        <p className="text-sm text-muted-foreground pt-1">{quiz.description || 'A fun quiz on this interesting topic!'}</p>
-      </CardHeader>
-      <CardContent className="flex-grow space-y-3">
-          <p className="text-xs font-semibold text-muted-foreground uppercase">Leaderboard ({quiz.difficulty})</p>
-          {uniqueTopPlayers.length > 0 ? (
-            <div className="space-y-2">
-                {uniqueTopPlayers.map((player) => (
-                    <div key={player.rank} className="flex items-center gap-3">
-                        <TrophyIcon color={medalColors[player.rank] || '#A9A9A9'} />
-                        <span className="text-sm font-medium">{player.name.split(' ')[0]}</span>
-                        <span className="text-sm text-primary font-bold ml-auto">{player.score.toLocaleString()} PTS</span>
-                    </div>
-                ))}
-            </div>
-          ) : (
-             <div className="text-sm text-muted-foreground/70 text-center py-4">
-                Be the first to set a score!
-             </div>
-          )}
-      </CardContent>
-      <CardFooter>
-        <Button onClick={handleStartQuiz} className="w-full" disabled={currentDifficultyCompleted}>
+                    {quiz.difficulty}
+                    <ChevronDown className="h-3 w-3" />
+                  </Badge>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {availableDifficulties.length > 0 ? availableDifficulties.map((d) => (
+                    <DropdownMenuItem
+                      key={d}
+                      onSelect={() => onDifficultyChange(quiz.id, quiz.topic, quiz.category, d)}
+                      className="capitalize"
+                    >
+                      {d}
+                    </DropdownMenuItem>
+                  )) : (
+                    <DropdownMenuItem disabled>No other difficulties available</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+          </div>
+          <p className="text-sm text-muted-foreground pt-1 line-clamp-2">{quiz.description || 'A fun quiz on this interesting topic!'}</p>
+        </CardHeader>
+        <CardContent className="flex-grow space-y-3 pb-6 min-h-[180px]">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Leaderboard ({quiz.difficulty})</p>
+            {uniqueTopPlayers.length > 0 ? (
+              <div className="space-y-2">
+                  {uniqueTopPlayers.map((player) => (
+                      <div key={player.rank} className="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-all duration-200">
+                          <TrophyIcon color={medalColors[player.rank] || '#A9A9A9'} />
+                          <span className="text-sm font-medium">{player.name.split(' ')[0]}</span>
+                          <span className="text-sm text-primary font-bold ml-auto">{player.score.toLocaleString()} PTS</span>
+                      </div>
+                  ))}
+              </div>
+            ) : (
+               <div className="text-sm text-muted-foreground/70 text-center py-6 border border-dashed border-muted/30 rounded-lg">
+                  <div>Be the first to set a score!</div>
+               </div>
+            )}
+        </CardContent>
+        <CardFooter>
+          <Button 
+            onClick={handleStartQuiz} 
+            className="w-full"
+            disabled={currentDifficultyCompleted}
+          >
             {currentDifficultyCompleted ? "Completed" : "Start Quiz"}
-        </Button>
-      </CardFooter>
-    </Card>
+          </Button>
+        </CardFooter>
+      </Card>
+    </div>
   );
 }

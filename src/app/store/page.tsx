@@ -27,10 +27,10 @@ import { useRouter } from 'next/navigation';
 
 
 const availablePerks: Perk[] = [
-    { id: 'fifty-fifty', name: '50/50', description: 'Eliminates two incorrect options on a question.', cost: 500, icon: HelpCircle },
-    { id: 'score-booster', name: 'Score Booster', description: 'Doubles your score for one full quiz.', cost: 2500, icon: Zap },
-    { id: 'skip-question', name: 'Skip Question', 'description': 'Skip a question you don\'t know. You won\'t get points for it.', cost: 750, icon: SkipForward },
-    { id: 'time-attack', name: 'Time Attack!', description: 'Reduces an opponent\'s question time to 5 seconds!', cost: 1000, icon: ShieldAlert },
+    { id: 'fifty-fifty', name: '50/50', description: 'Eliminates two incorrect options on a question.', cost: 5000, icon: HelpCircle },
+    { id: 'score-booster', name: 'Score Booster', description: 'Doubles your score for one full quiz.', cost: 12000, icon: Zap },
+    { id: 'skip-question', name: 'Skip Question', 'description': 'Skip a question you don\'t know. You won\'t get points for it.', cost: 7500, icon: SkipForward },
+    { id: 'time-attack', name: 'Time Attack!', description: 'Reduces an opponent\'s question time to 5 seconds!', cost: 25000, icon: ShieldAlert },
 ];
 
 export default function StorePage() {

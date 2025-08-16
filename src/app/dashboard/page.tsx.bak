@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -17,7 +18,6 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { QuizForm } from '@/components/QuizForm';
-import { QuizLoadingAnimation } from '@/components/QuizLoadingAnimation';
 import { useAuth } from '@/hooks/use-auth';
 import { collection, addDoc, getDocs, query, orderBy, serverTimestamp, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -38,7 +38,6 @@ export default function DashboardPage() {
   const [quizzes, setQuizzes] = React.useState<Quiz[]>([]);
   const [completedQuizKeys, setCompletedQuizKeys] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [isLoading, setIsLoading] = React.useState(false);
   const [isQuizFormOpen, setIsQuizFormOpen] = React.useState(false);
   const [quizCategories, setQuizCategories] = React.useState(defaultCategories);
   
@@ -99,47 +98,8 @@ export default function DashboardPage() {
       toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a quiz.' });
       return null;
     }
-    
-    // Check for existing quizzes with the same topic
-    const existingQuiz = quizzes.find(q => 
-      q.topic.toLowerCase() === topic.toLowerCase()
-    );
-    
-    if (existingQuiz) {
-      setIsQuizFormOpen(false);
-      toast({
-        title: 'Quiz Already Exists',
-        description: `A quiz on "${topic}" already exists. Scrolling to it.`,
-      });
-      
-      // Allow time for the dialog to close and the toast to appear
-      setTimeout(() => {
-        const quizElement = document.getElementById(`quiz-${existingQuiz.id}`);
-        if (quizElement) {
-          quizElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-          quizElement.classList.add('highlight-quiz');
-          
-          // Remove highlight after animation
-          setTimeout(() => {
-            quizElement.classList.remove('highlight-quiz');
-          }, 2000);
-        }
-      }, 500);
-      
-      return existingQuiz;
-    }
-    
     try {
-      toast({
-        title: 'Creating Quiz',
-        description: 'Generating questions for your quiz...',
-      });
-      
-      const result: GenerateQuizOutput = await generateQuiz({ 
-        topic, 
-        difficulty: difficulty as "dumb-dumb" | "novice" | "beginner" | "intermediate" | "advanced" | "expert" | "point-farming", 
-        category 
-      });
+      const result: GenerateQuizOutput = await generateQuiz({ topic, difficulty, category });
       if (result && result.quiz) {
         const newQuizData = {
           userId: user.uid,
@@ -159,52 +119,6 @@ export default function DashboardPage() {
         }
         setQuizzes(prev => [newQuiz, ...prev]);
         setIsQuizFormOpen(false);
-        return newQuiz;
-      } else {
-        throw new Error('Failed to generate quiz, please try again.');
-      }
-    } catch (error) {
-      console.error('Quiz generation failed:', error);
-      toast({
-        variant: 'destructive',
-        title: 'Error',
-        description: error instanceof Error ? error.message : 'An unknown error occurred.',
-      });
-      return null;
-    }
-  };
-
-  // Create quiz specifically for difficulty change - skips duplicate check
-  const createQuizForDifficultyChange = async (topic: string, difficulty: string, category: string): Promise<Quiz | null> => {
-    if (!user) {
-      toast({ variant: 'destructive', title: 'Error', description: 'You must be logged in to create a quiz.' });
-      return null;
-    }
-    
-    try {
-      const result: GenerateQuizOutput = await generateQuiz({ 
-        topic, 
-        difficulty: difficulty as "dumb-dumb" | "novice" | "beginner" | "intermediate" | "advanced" | "expert" | "point-farming", 
-        category 
-      });
-      if (result && result.quiz) {
-        const newQuizData = {
-          userId: user.uid,
-          topic,
-          difficulty,
-          category,
-          description: result.description,
-          questions: result.quiz,
-          leaderboard: [],
-          createdAt: serverTimestamp(),
-        };
-        const docRef = await addDoc(collection(db, 'quizzes'), newQuizData);
-        const newQuiz = { id: docRef.id, ...newQuizData, createdAt: { seconds: Date.now()/1000 } } as Quiz;
-
-        if (!quizCategories.includes(category)) {
-          setQuizCategories(prev => [...new Set([...prev, category])]);
-        }
-        setQuizzes(prev => [newQuiz, ...prev]);
         return newQuiz;
       } else {
         throw new Error('Failed to generate quiz, please try again.');
@@ -244,7 +158,7 @@ export default function DashboardPage() {
       targetQuiz = { id: querySnapshot.docs[0].id, ...querySnapshot.docs[0].data() } as Quiz;
     } else {
       toast({ title: 'Generating New Quiz...', description: `Creating a "${newDifficulty}" version of "${topic}".`});
-      const newQuiz = await createQuizForDifficultyChange(topic, newDifficulty, category);
+      const newQuiz = await handleCreateQuiz(topic, newDifficulty, category);
       if (!newQuiz) {
         return; // Quiz generation failed
       }
@@ -292,34 +206,14 @@ export default function DashboardPage() {
 
   if (loading) {
       return (
-          <div className="flex flex-col justify-center items-center h-[60vh] space-y-6">
-              <div className="relative">
-                  <div className="w-16 h-16 rounded-full bg-primary/20 absolute animate-ping"></div>
-                  <div className="w-16 h-16 rounded-full bg-primary/40 animate-pulse flex items-center justify-center">
-                      <svg
-                          className="w-8 h-8 text-primary animate-spin-slow"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                      >
-                          <path d="M9 12l2 2 4-4"/>
-                          <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
-                      </svg>
-                  </div>
-              </div>
-              <div className="text-center">
-                  <h3 className="text-xl font-bold mb-1">Loading Quizzes</h3>
-                  <p className="text-muted-foreground">Preparing your brain-teasers...</p>
-              </div>
+          <div className="flex justify-center items-center h-[60vh]">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
           </div>
       )
   }
 
   return (
-    <div className="md:space-y-8 pb-24 md:pb-0">
+    <div className="md:space-y-8">
       {/* Hero Section - PC Only */}
       <div className="hidden md:block">
         <div className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary/10 to-transparent border border-border p-6 lg:p-8">
@@ -357,7 +251,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Search and Controls - Fixed on Mobile */}
-      <div className="md:hidden sticky top-0 z-50 bg-background pt-1 pb-3 border-b border-border/50 shadow-sm">
+      <div className="md:hidden sticky top-0 z-10 bg-background pt-1 pb-3 border-b border-border/50">
         <div className="relative w-full mb-3">
           <Input 
             placeholder="Search quizzes by topic..." 
@@ -369,7 +263,7 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center justify-between gap-2 w-full">
-           <DropdownMenu>
+            <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" className="h-9 flex-1">
                     <Filter className="mr-2 h-4 w-4" />
@@ -414,31 +308,66 @@ export default function DashboardPage() {
                 </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-background border-border">
-                {isLoading ? (
-                  <QuizLoadingAnimation />
-                ) : (
-                  <>
-                    <DialogHeader>
-                        <DialogTitle>Create a New Quiz</DialogTitle>
-                        <DialogDescription>
-                        What would you like to learn about today?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <QuizForm 
-                      onCreateQuiz={async (topic, diff, cat) => {
-                        setIsLoading(true);
-                        const newQuiz = await handleCreateQuiz(topic, diff, cat);
-                        setIsLoading(false);
-                        if (newQuiz) {
-                          router.push(`/quiz/${newQuiz.id}`);
-                          return true;
-                        }
-                        return false;
-                      }} 
-                      categories={quizCategories} 
-                    />
-                  </>
-                )}
+                <DialogHeader>
+                    <DialogTitle>Create a New Quiz</DialogTitle>
+                    <DialogDescription>
+                    What would you like to learn about today?
+                    </DialogDescription>
+                </DialogHeader>
+                <QuizForm 
+                  onCreateQuiz={async (topic, diff, cat) => {
+                    const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                    if (newQuiz) {
+                      router.push(`/quiz/${newQuiz.id}`);
+                      return true;
+                    }
+                    return false;
+                  }} 
+                  categories={quizCategories} 
+                />
+                </DialogContent>
+            </Dialog>            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="h-10 md:h-11 flex-1 md:flex-auto">
+                    <ArrowDownUp className="mr-2 h-4 w-4" />
+                    Sort
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                 <DropdownMenuLabel>Sort by</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuRadioGroup value={sortOrder} onValueChange={setSortOrder}>
+                    <DropdownMenuRadioItem value="newest">Newest</DropdownMenuRadioItem>
+                    <DropdownMenuRadioItem value="oldest">Oldest</DropdownMenuRadioItem>
+                </DropdownMenuRadioGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
+                <DialogTrigger asChild>
+                <Button className="h-10 md:h-11 flex-1 md:flex-auto">
+                    <Plus className="mr-2 h-4 w-4" />
+                    <span>New Quiz</span>
+                </Button>
+                </DialogTrigger>
+                <DialogContent className="bg-background border-border">
+                <DialogHeader>
+                    <DialogTitle>Create a New Quiz</DialogTitle>
+                    <DialogDescription>
+                    What would you like to learn about today?
+                    </DialogDescription>
+                </DialogHeader>
+                <QuizForm 
+                  onCreateQuiz={async (topic, diff, cat) => {
+                    const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                    if (newQuiz) {
+                      router.push(`/quiz/${newQuiz.id}`);
+                      return true;
+                    }
+                    return false;
+                  }} 
+                  categories={quizCategories} 
+                />
                 </DialogContent>
             </Dialog>
         </div>
@@ -502,31 +431,23 @@ export default function DashboardPage() {
                 </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-background border-border">
-                {isLoading ? (
-                  <QuizLoadingAnimation />
-                ) : (
-                  <>
-                    <DialogHeader>
-                        <DialogTitle>Create a New Quiz</DialogTitle>
-                        <DialogDescription>
-                        What would you like to learn about today?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <QuizForm 
-                      onCreateQuiz={async (topic, diff, cat) => {
-                        setIsLoading(true);
-                        const newQuiz = await handleCreateQuiz(topic, diff, cat);
-                        setIsLoading(false);
-                        if (newQuiz) {
-                          router.push(`/quiz/${newQuiz.id}`);
-                          return true;
-                        }
-                        return false;
-                      }} 
-                      categories={quizCategories} 
-                    />
-                  </>
-                )}
+                <DialogHeader>
+                    <DialogTitle>Create a New Quiz</DialogTitle>
+                    <DialogDescription>
+                    What would you like to learn about today?
+                    </DialogDescription>
+                </DialogHeader>
+                <QuizForm 
+                  onCreateQuiz={async (topic, diff, cat) => {
+                    const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                    if (newQuiz) {
+                      router.push(`/quiz/${newQuiz.id}`);
+                      return true;
+                    }
+                    return false;
+                  }} 
+                  categories={quizCategories} 
+                />
                 </DialogContent>
             </Dialog>
         </div>
@@ -545,29 +466,30 @@ export default function DashboardPage() {
               </div>
             ))}
           </div>
-        ) : (
-          <div className="text-center py-24 bg-secondary/30 rounded-2xl border-2 border-dashed border-border">
-            <svg
-              className="mx-auto h-12 w-12 text-muted-foreground"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-              aria-hidden="true"
-            >
-              <path
-                vectorEffect="non-scaling-stroke"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z"
-              />
-            </svg>
-            <h3 className="mt-4 text-lg font-medium">No quizzes found</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try adjusting your search or filters, or create a new quiz!
-            </p>
-            <div className="mt-6">
-              <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
+        )
+      ) : (
+        <div className="text-center py-24 bg-secondary/30 rounded-2xl border-2 border-dashed border-border">
+          <svg
+            className="mx-auto h-12 w-12 text-muted-foreground"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              vectorEffect="non-scaling-stroke"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h14a2 2 0 012 2v10a2 2 0 01-2 2H4a2 2 0 01-2-2z"
+            />
+          </svg>
+          <h3 className="mt-4 text-lg font-medium">No quizzes found</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Try adjusting your search or filters, or create a new quiz!
+          </p>
+          <div className="mt-6">
+             <Dialog open={isQuizFormOpen} onOpenChange={setIsQuizFormOpen}>
                 <DialogTrigger asChild>
                   <Button>
                     <Plus className="mr-2 h-4 w-4" />
@@ -575,37 +497,29 @@ export default function DashboardPage() {
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-background border-border">
-                {isLoading ? (
-                  <QuizLoadingAnimation />
-                ) : (
-                  <>
-                    <DialogHeader>
-                      <DialogTitle>Create a New Quiz</DialogTitle>
-                      <DialogDescription>
-                        What would you like to learn about today?
-                      </DialogDescription>
-                    </DialogHeader>
-                    <QuizForm 
-                      onCreateQuiz={async (topic, diff, cat) => {
-                        setIsLoading(true);
-                        const newQuiz = await handleCreateQuiz(topic, diff, cat);
-                        setIsLoading(false);
-                        if (newQuiz) {
-                          router.push(`/quiz/${newQuiz.id}`);
-                          return true;
-                        }
-                        return false;
-                      }} 
-                      categories={quizCategories} 
-                    />
-                  </>
-                )}
+                  <DialogHeader>
+                    <DialogTitle>Create a New Quiz</DialogTitle>
+                    <DialogDescription>
+                      What would you like to learn about today?
+                    </DialogDescription>
+                  </DialogHeader>
+                  <QuizForm 
+                    onCreateQuiz={async (topic, diff, cat) => {
+                      const newQuiz = await handleCreateQuiz(topic, diff, cat);
+                      if (newQuiz) {
+                        router.push(`/quiz/${newQuiz.id}`);
+                        return true;
+                      }
+                      return false;
+                    }} 
+                    categories={quizCategories} 
+                  />
                 </DialogContent>
               </Dialog>
-            </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
+

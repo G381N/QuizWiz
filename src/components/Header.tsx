@@ -1,4 +1,3 @@
-
 'use client';
 
 import Link from 'next/link';
@@ -92,30 +91,33 @@ export default function Header() {
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-sm border-b border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex h-20 items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-2">
-                 <svg
-                    className="w-8 h-8 text-primary"
+            <Link href="/dashboard" className="flex items-center gap-2 group">
+                <div className="relative flex items-center justify-center w-7 h-7">
+                  <svg
+                    width="24"
+                    height="24"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="M12 2 L4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z" stroke="#A855F7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
                   </svg>
-                <span className="text-xl font-bold tracking-tight">QuizWiz</span>
+                </div>
+                <span className="text-xl font-medium text-white">QuizWiz</span>
             </Link>
-            <div className="hidden md:flex items-center gap-2">
-               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                  <Link href="/dashboard">Home</Link>
-               </Button>
-               <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                   <Link href="/leaderboard">Leaderboard</Link>
-               </Button>
-                <Button variant="link" asChild className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-                   <Link href="/store">Store</Link>
-                </Button>
+            <div className="hidden md:flex items-center gap-4">
+               <Link href="/dashboard" className="group relative px-2 py-1">
+                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-200">Home</span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full rounded-full opacity-0 group-hover:opacity-100"></span>
+               </Link>
+               <Link href="/leaderboard" className="group relative px-2 py-1">
+                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-200">Leaderboard</span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full rounded-full opacity-0 group-hover:opacity-100"></span>
+               </Link>
+               <Link href="/store" className="group relative px-2 py-1">
+                  <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors duration-200">Store</span>
+                  <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-primary transition-all duration-300 group-hover:w-full rounded-full opacity-0 group-hover:opacity-100"></span>
+               </Link>
             </div>
             <div className="flex items-center gap-2">
               {user && (

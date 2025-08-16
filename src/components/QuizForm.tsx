@@ -5,7 +5,7 @@ import * as React from 'react';
 import { z } from 'zod';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { ArrowRight, Loader2 } from 'lucide-react';
+import { ArrowRight, Loader2, HelpCircle } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/form';
 import { quizCategories as defaultCategories } from '@/types';
 import { ScrollArea } from './ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 const quizFormSchema = z.object({
   topic: z.string().min(3, 'Topic must be at least 3 characters long.'),
@@ -55,6 +56,16 @@ const difficulties = [
   'expert',
   'point-farming',
 ];
+
+const difficultyDescriptions: Record<string, string> = {
+  'dumb-dumb': 'Very easy questions for casual fun (0.5x points)',
+  'novice': 'Simple questions for beginners (0.8x points)',
+  'beginner': 'Standard difficulty level (1.0x points)',
+  'intermediate': 'Moderately challenging questions (1.5x points)',
+  'advanced': 'Difficult questions for knowledgeable players (2.0x points)',
+  'expert': 'Very challenging questions for topic experts (3.0x points)',
+  'point-farming': 'Maximum difficulty for maximum rewards (4.0x points)',
+};
 
 interface QuizFormProps {
   onCreateQuiz: (topic: string, difficulty: string, category: string) => Promise<boolean>;
@@ -150,7 +161,19 @@ export function QuizForm({ onCreateQuiz, categories = defaultCategories }: QuizF
               name="difficulty"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="font-semibold">Difficulty</FormLabel>
+                  <div className="flex items-center gap-2">
+                    <FormLabel className="font-semibold">Difficulty</FormLabel>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="text-sm">Higher difficulties give higher point multipliers</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                   <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger className="rounded-xl h-12 bg-secondary/50 border-border">
@@ -159,9 +182,18 @@ export function QuizForm({ onCreateQuiz, categories = defaultCategories }: QuizF
                     </FormControl>
                     <SelectContent>
                       {difficulties.map((level) => (
-                        <SelectItem key={level} value={level} className="capitalize">
-                          {level}
-                        </SelectItem>
+                        <TooltipProvider key={level}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <SelectItem value={level} className="capitalize">
+                                {level}
+                              </SelectItem>
+                            </TooltipTrigger>
+                            <TooltipContent side="right" align="start">
+                              <p className="text-sm max-w-60">{difficultyDescriptions[level]}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       ))}
                     </SelectContent>
                   </Select>

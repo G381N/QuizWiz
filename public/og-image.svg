@@ -1,0 +1,7 @@
+<!-- This is a placeholder SVG for the OpenGraph image -->
+<svg width="1200" height="630" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="630" fill="#1e293b"/>
+  <text x="600" y="300" font-family="Arial" font-size="72" fill="#ffffff" text-anchor="middle">QuizWiz</text>
+  <text x="600" y="400" font-family="Arial" font-size="36" fill="#94a3b8" text-anchor="middle">Learn Anything, The Fun Way</text>
+  <path d="M600 180 L650 150 L650 90 L550 60 L450 90 L450 150 L500 180 Z" fill="none" stroke="#0ea5e9" stroke-width="8"/>
+</svg>

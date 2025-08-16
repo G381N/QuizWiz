@@ -1,4 +1,3 @@
-
 require('dotenv').config();
 
 // Import bundle analyzer
@@ -73,4 +72,4 @@ const nextConfig = {
 };
 
 // Apply bundle analyzer wrapper
-export default withBundleAnalyzer(nextConfig);
+module.exports = withBundleAnalyzer(nextConfig);
