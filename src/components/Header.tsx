@@ -94,13 +94,27 @@ export default function Header() {
             <Link href="/dashboard" className="flex items-center gap-2 group">
                 <div className="relative flex items-center justify-center w-7 h-7">
                   <svg
+                    className="w-7 h-7 text-primary"
                     width="24"
                     height="24"
                     viewBox="0 0 24 24"
                     fill="none"
+                    stroke="#A855F7"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     xmlns="http://www.w3.org/2000/svg"
                   >
-                    <path d="M12 2 L4 5v6c0 5.5 3.8 10.7 8 12 4.2-1.3 8-6.5 8-12V5l-8-3z" stroke="#A855F7" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+                    <path d="M9 12l2 2 4-4" />
+                    <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z" />
+                    <path d="M12 2v2" />
+                    <path d="M12 20v2" />
+                    <path d="M4.93 4.93l1.41 1.41" />
+                    <path d="M17.66 17.66l1.41 1.41" />
+                    <path d="M2 12h2" />
+                    <path d="M20 12h2" />
+                    <path d="M6.34 17.66l-1.41 1.41" />
+                    <path d="M19.07 4.93l-1.41 1.41" />
                   </svg>
                 </div>
                 <span className="text-xl font-medium text-white">QuizWiz</span>

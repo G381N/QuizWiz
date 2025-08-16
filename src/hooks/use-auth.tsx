@@ -1,4 +1,3 @@
-
 'use client';
 
 import * as React from 'react';
@@ -73,7 +72,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const logOut = async () => {
     try {
       await signOut(auth);
-      router.push('/login');
+      router.push('/');
     } catch (error) {
       console.error('Error signing out', error);
     }
